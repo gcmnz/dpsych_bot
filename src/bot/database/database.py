@@ -69,9 +69,41 @@ class Database:
 
         return bool(user_exists)
 
-    async def is_user_admin(self, user_id: int) -> bool:
+    async def is_user_has_name(self, tg_user_id: int) -> bool:
+        query = "SELECT Имя FROM Users WHERE tg_user_id = ?"
+        result = await self.connection.execute(query, (tg_user_id,))
+        row = await result.fetchone()
+        return row is not None and row[0]
+
+    async def is_user_has_surname(self, tg_user_id: int) -> bool:
+        query = "SELECT Фамилия FROM Users WHERE tg_user_id = ?"
+        result = await self.connection.execute(query, (tg_user_id,))
+        row = await result.fetchone()
+        return row is not None and row[0]
+
+    async def set_user_name(self, tg_user_id: int, name: str) -> None:
+        query = """
+            UPDATE Users
+            SET Имя = ?
+            WHERE tg_user_id = ?
+            """
+        # Выполнение запроса с использованием подготовленного выражения
+        await self.connection.execute(query, (name, tg_user_id))
+        await self.connection.commit()
+
+    async def set_user_surname(self, tg_user_id: int, surname: str) -> None:
+        query = """
+            UPDATE Users
+            SET Фамилия = ?
+            WHERE tg_user_id = ?
+            """
+        # Выполнение запроса с использованием подготовленного выражения
+        await self.connection.execute(query, (surname, tg_user_id))
+        await self.connection.commit()
+
+    async def is_user_admin(self, tg_user_id: int) -> bool:
         query = "SELECT Админ FROM Users WHERE tg_user_id = ?"
-        result = await self.connection.execute(query, (user_id,))
+        result = await self.connection.execute(query, (tg_user_id,))
         row = await result.fetchone()
         return row is not None and row[0]
 
@@ -88,6 +120,12 @@ class Database:
                 result.append(tg_user_id)
 
         return result
+
+    async def get_user_generated_files(self, tg_user_id: int) -> int:
+        query = "SELECT Файлов_сгенерировано FROM Users WHERE tg_user_id = ?"
+        result = await self.connection.execute(query, (tg_user_id,))
+        row = await result.fetchone()
+        return row[0]
 
     # async def get_user(self, user_id: int) -> Optional[dict]:
     #     query = "SELECT * FROM users WHERE user_id = ?"

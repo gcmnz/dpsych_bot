@@ -4,9 +4,17 @@ en_alphabet: str = 'abcdefghijklmnopqrstuvwxyz'
 ru_alphabet: str = 'абвгдежзийклмнопрстуфхцчшщъыьэюя'
 
 
-def is_valid_name(name: str) -> bool:
+def is_valid_name_en(name: str) -> bool:
     for char in name:
         if char.lower() not in en_alphabet:
+            return False
+
+    return True
+
+
+def is_valid_name_ru(name: str) -> bool:
+    for char in name:
+        if char.lower() not in ru_alphabet:
             return False
 
     return True
@@ -24,6 +32,7 @@ def is_valid_date(date: str) -> bool:
         return True
     except ValueError:
         return False
+
 
 
 if __name__ == '__main__':
