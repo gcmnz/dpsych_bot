@@ -14,7 +14,7 @@ from .database import *
 from ..pdf import create_pdf
 
 BASE_MESSAGE: str = "🧠 Цифровая психология\n\n📄 Сгенерировано файлов: <strong>{}</strong>"
-INPUT_NAME: str = "👤 Введите имя (латиницей)"
+INPUT_NAME: str = "👤 Введите имя <strong>(латиницей)</strong>"
 INPUT_DATE: str = '📅 Введите дату в формате дд.мм.гггг'
 INCORRECT_NAME: str = '❌ Введено некорректное имя'
 ACCOUNT_NOT_REGISTERED: str = "⚠️ Вы не зарегистрированы в системе\nУникальный идентификатор: <code>{}</code>"
@@ -28,10 +28,10 @@ USER_NOT_REGISTERED: str = '❌ Пользователь не зарегистр
 USER_DELETE_SUCCEED: str = '✅ Пользователь успешно удалён'
 WAITING_FOR_FILE_GENERATION: str = '⏳ Файл создаётся, ожидайте...'
 
-INVALID_NAME: str = '❌ Введено некорректное имя'
-INVALID_SURNAME: str = '❌ Введена некорректная фамилия'
-INPUT_NAME_AUTH: str = '👤 Введите имя'
-INPUT_SURNAME_AUTH: str = '👤 Введите фамилию'
+INVALID_NAME: str = '<strong>🔐 Авторизация</strong>\n\n❌ Введено некорректное имя'
+INVALID_SURNAME: str = '<strong>🔐 Авторизация</strong>\n\n❌ Введена некорректная фамилия'
+INPUT_NAME_AUTH: str = '<strong>🔐 Авторизация</strong>\n\n👤 Введите имя <strong>(кириллицей)</strong>'
+INPUT_SURNAME_AUTH: str = '<strong>🔐 Авторизация</strong>\n\n👤 Введите фамилию <strong>(кириллицей)</strong>'
 
 logging.basicConfig(level=logging.INFO)
 
@@ -70,23 +70,23 @@ async def process_message(message: types.Message, state: FSMContext):
     if not await db.is_user_has_name(user_id):
         if current_state == Form.input_name:
             if not is_valid_name_ru(message_text):
-                await bot.send_message(chat_id=user_id, text=INVALID_NAME)
+                await bot.send_message(chat_id=user_id, text=INVALID_NAME, parse_mode='HTML')
                 return
 
             await state.set_state(Form.input_surname)
             await db.set_user_name(user_id, message_text)
-            await bot.send_message(chat_id=user_id, text=INPUT_SURNAME_AUTH)
+            await bot.send_message(chat_id=user_id, text=INPUT_SURNAME_AUTH, parse_mode='HTML')
             return
 
         await state.set_state(Form.input_name)
-        await bot.send_message(chat_id=user_id, text=INPUT_NAME_AUTH)
+        await bot.send_message(chat_id=user_id, text=INPUT_NAME_AUTH, parse_mode='HTML')
 
         return
 
     if not await db.is_user_has_surname(user_id):
         if current_state == Form.input_surname:
             if not is_valid_name_ru(message_text):
-                await bot.send_message(chat_id=user_id, text=INVALID_SURNAME)
+                await bot.send_message(chat_id=user_id, text=INVALID_SURNAME, parse_mode='HTML')
                 return
 
             if await db.is_user_admin(user_id):
@@ -100,7 +100,7 @@ async def process_message(message: types.Message, state: FSMContext):
             return
 
         await state.set_state(Form.input_name)
-        await bot.send_message(chat_id=user_id, text=INPUT_SURNAME_AUTH)
+        await bot.send_message(chat_id=user_id, text=INPUT_SURNAME_AUTH, parse_mode='HTML')
 
         return
 
@@ -117,24 +117,24 @@ async def process_message(message: types.Message, state: FSMContext):
 
     elif current_state == Form.send_name:
         if not is_valid_name_en(message.text):
-            await message.answer(INCORRECT_NAME, reply_markup=back_keyboard)
+            await message.answer(INCORRECT_NAME, reply_markup=back_keyboard, parse_mode='HTML')
             return
 
         entered_name[user_id] = message.text
 
-        await message.answer(INPUT_DATE, reply_markup=back_keyboard)
+        await message.answer(INPUT_DATE, reply_markup=back_keyboard, parse_mode='HTML')
         await state.set_state(Form.send_date_of_birth)
 
     elif current_state == Form.send_date_of_birth:
         if not is_valid_date(message.text):
-            await message.answer(INPUT_DATE, reply_markup=back_keyboard)
+            await message.answer(INPUT_DATE, reply_markup=back_keyboard, parse_mode='HTML')
             return
 
         name: str = entered_name[user_id]
         date: str = message.text
         del entered_name[user_id]
 
-        await message.answer(WAITING_FOR_FILE_GENERATION)
+        await message.answer(WAITING_FOR_FILE_GENERATION, parse_mode='HTML')
 
         pdf_bytes, pdf_path = create_pdf(name=name, date_of_birth_str=date)
         pdf = BufferedInputFile(file=pdf_bytes, filename=pdf_path)
@@ -152,12 +152,12 @@ async def process_message(message: types.Message, state: FSMContext):
 
     elif current_state == Form.add_user:
         if not await db.is_user_admin(user_id):
-            await bot.send_message(chat_id=user_id, text=U_ARE_NOT_ADMIN, reply_markup=generate_file_keyboard)
+            await bot.send_message(chat_id=user_id, text=U_ARE_NOT_ADMIN, reply_markup=generate_file_keyboard, parse_mode='HTML')
             await state.set_state(Form.main_menu)
             return
 
         if not await is_check_user_id_valid(message_text):
-            await bot.send_message(chat_id=user_id, text=INCORRECT_IDENTIFER, reply_markup=back_keyboard)
+            await bot.send_message(chat_id=user_id, text=INCORRECT_IDENTIFER, reply_markup=back_keyboard, parse_mode='HTML')
             return
 
         userid: int = int(message_text)
@@ -168,17 +168,17 @@ async def process_message(message: types.Message, state: FSMContext):
             text: str = USER_ALREADY_REGISTERED
 
         await state.set_state(Form.main_menu)
-        await bot.send_message(chat_id=user_id, text=text, reply_markup=admin_main_keyboard)
+        await bot.send_message(chat_id=user_id, text=text, reply_markup=admin_main_keyboard, parse_mode='HTML')
         await bot.send_message(chat_id=userid, text=BASE_MESSAGE.format(await db.get_user_generated_files(user_id)), reply_markup=generate_file_keyboard, parse_mode='HTML')
 
     elif current_state == Form.add_admin:
         if not await db.is_user_admin(user_id):
-            await bot.send_message(chat_id=user_id, text=U_ARE_NOT_ADMIN, reply_markup=generate_file_keyboard)
+            await bot.send_message(chat_id=user_id, text=U_ARE_NOT_ADMIN, reply_markup=generate_file_keyboard, parse_mode='HTML')
             await state.set_state(Form.main_menu)
             return
 
         if not await is_check_user_id_valid(message_text):
-            await bot.send_message(chat_id=user_id, text=INCORRECT_IDENTIFER, reply_markup=back_keyboard)
+            await bot.send_message(chat_id=user_id, text=INCORRECT_IDENTIFER, reply_markup=back_keyboard, parse_mode='HTML')
             return
 
         userid: int = int(message_text)
@@ -189,25 +189,25 @@ async def process_message(message: types.Message, state: FSMContext):
             text: str = USER_ALREADY_REGISTERED
 
         await state.set_state(Form.main_menu)
-        await bot.send_message(chat_id=user_id, text=text, reply_markup=admin_main_keyboard)
+        await bot.send_message(chat_id=user_id, text=text, reply_markup=admin_main_keyboard, parse_mode='HTML')
         await bot.send_message(chat_id=userid, text=BASE_MESSAGE.format(await db.get_user_generated_files(user_id)), reply_markup=admin_main_keyboard, parse_mode='HTML')
 
     elif current_state == Form.delete_user:
         if not await db.is_user_admin(user_id):
-            await bot.send_message(chat_id=user_id, text=U_ARE_NOT_ADMIN, reply_markup=generate_file_keyboard)
+            await bot.send_message(chat_id=user_id, text=U_ARE_NOT_ADMIN, reply_markup=generate_file_keyboard, parse_mode='HTML')
             await state.set_state(Form.main_menu)
             return
 
         if not await is_check_user_id_valid(message_text):
-            await bot.send_message(chat_id=user_id, text=INCORRECT_IDENTIFER, reply_markup=back_keyboard)
+            await bot.send_message(chat_id=user_id, text=INCORRECT_IDENTIFER, reply_markup=back_keyboard, parse_mode='HTML')
             return
 
         if not await db.is_user_registered(int(message_text)):
-            await bot.send_message(chat_id=user_id, text=USER_NOT_REGISTERED, reply_markup=back_keyboard)
+            await bot.send_message(chat_id=user_id, text=USER_NOT_REGISTERED, reply_markup=back_keyboard, parse_mode='HTML')
             return
 
         await db.delete_user(int(message_text))
-        await bot.send_message(chat_id=user_id, text=USER_DELETE_SUCCEED, reply_markup=admin_main_keyboard)
+        await bot.send_message(chat_id=user_id, text=USER_DELETE_SUCCEED, reply_markup=admin_main_keyboard, parse_mode='HTML')
 
 
 @dp.callback_query(lambda c: c.data in ['generate_file', 'generate_new_file', 'back', 'add_user', 'add_admin', 'delete_user', 'load_database'])
@@ -217,42 +217,42 @@ async def process_callback_generate_file(callback_query: types.CallbackQuery, st
 
     if not await db.is_user_has_name(chat_id):
         await state.set_state(Form.input_name)
-        await bot.send_message(chat_id=chat_id, text=INPUT_NAME_AUTH)
+        await bot.send_message(chat_id=chat_id, text=INPUT_NAME_AUTH, parse_mode='HTML')
         return
 
     if not await db.is_user_has_surname(chat_id):
         await state.set_state(Form.input_surname)
-        await bot.send_message(chat_id=chat_id, text=INPUT_SURNAME_AUTH)
+        await bot.send_message(chat_id=chat_id, text=INPUT_SURNAME_AUTH, parse_mode='HTML')
         return
 
     if callback_query.data == 'generate_file':
         await state.set_state(Form.send_name)
         await bot.answer_callback_query(callback_query.id)
-        await bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=INPUT_NAME, reply_markup=back_keyboard)
+        await bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=INPUT_NAME, reply_markup=back_keyboard, parse_mode='HTML')
 
     elif callback_query.data == 'generate_new_file':
         await state.set_state(Form.send_name)
         await bot.answer_callback_query(callback_query.id)
-        await bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=INPUT_NAME, reply_markup=back_keyboard)
+        await bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=INPUT_NAME, reply_markup=back_keyboard, parse_mode='HTML')
 
     elif callback_query.data == 'add_user':
         await state.set_state(Form.add_user)
         await bot.answer_callback_query(callback_query.id)
-        await bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=INPUT_USER_IDENTIFER, reply_markup=back_keyboard)
+        await bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=INPUT_USER_IDENTIFER, reply_markup=back_keyboard, parse_mode='HTML')
 
     elif callback_query.data == 'add_admin':
         await state.set_state(Form.add_admin)
         await bot.answer_callback_query(callback_query.id)
-        await bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=INPUT_USER_IDENTIFER, reply_markup=back_keyboard)
+        await bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=INPUT_USER_IDENTIFER, reply_markup=back_keyboard, parse_mode='HTML')
 
     elif callback_query.data == 'delete_user':
         await state.set_state(Form.delete_user)
         await bot.answer_callback_query(callback_query.id)
-        await bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=INPUT_USER_IDENTIFER, reply_markup=back_keyboard)
+        await bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=INPUT_USER_IDENTIFER, reply_markup=back_keyboard, parse_mode='HTML')
 
     elif callback_query.data == 'load_database':
         if not await db.is_user_admin(chat_id):
-            await bot.send_message(chat_id=chat_id, text=U_ARE_NOT_ADMIN, reply_markup=generate_file_keyboard)
+            await bot.send_message(chat_id=chat_id, text=U_ARE_NOT_ADMIN, reply_markup=generate_file_keyboard, parse_mode='HTML')
             return
 
         excel_buffer: bytes = await convert_db_to_excel(db)
@@ -270,7 +270,7 @@ async def process_back(state: FSMContext, chat_id: int, message_id: int) -> None
 
     if current_state == Form.send_date_of_birth:
         await state.set_state(Form.send_name)
-        await bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=INPUT_NAME, reply_markup=back_keyboard)
+        await bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=INPUT_NAME, reply_markup=back_keyboard, parse_mode='HTML')
         return
 
     if current_state == Form.send_name or current_state == Form.add_user or current_state == Form.add_admin or current_state == Form.delete_user:
