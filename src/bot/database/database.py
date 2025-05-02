@@ -38,7 +38,7 @@ class Database:
         await self.connection.execute(query, (tg_user_id,))
         await self.connection.commit()
 
-    async def register_user(self, tg_user_id: int, tg_username: str, subscribe_ends_time: str, surname: str = None, name: str = None, is_admin: bool = False) -> bool:
+    async def register_user(self, tg_user_id: int, tg_username: str, subscribe_ends_time: str, surname: str = None, name: str = None, is_admin: bool = False, files_generated: int = 0) -> bool:
         check_query = "SELECT 1 FROM users WHERE tg_user_id = ?"
         cursor = await self.connection.execute(check_query, (tg_user_id,))
         user_exists = await cursor.fetchone()
@@ -49,7 +49,7 @@ class Database:
         query = """
         INSERT INTO users (tg_user_id, tg_username, Фамилия, Имя, Файлов_сгенерировано, Админ, Доступ_до) VALUES (?, ?, ?, ?, ?, ?, ?)
         """
-        await self.connection.execute(query, (tg_user_id, f'@{tg_username}', surname, name, 0, is_admin, subscribe_ends_time))
+        await self.connection.execute(query, (tg_user_id, f'@{tg_username}', surname, name, files_generated, is_admin, subscribe_ends_time))
         await self.connection.commit()
 
         return True
