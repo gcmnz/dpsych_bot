@@ -4,20 +4,11 @@ from reportlab.platypus import SimpleDocTemplate
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_LEFT
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
 
 from .alg import *
 from .utils import *
 from .getters_text import *
-
-
-def load_font():
-    # Загрузка шрифта Times New Roman
-    pdfmetrics.registerFont(TTFont('TimesNewRoman', 'times.ttf'))
-    pdfmetrics.registerFont(TTFont('TimesNewRomanItalic', 'timesi.ttf'))
-    pdfmetrics.registerFont(TTFont('TimesNewRomanItalicBold', 'timesbi.ttf'))
-    pdfmetrics.registerFont(TTFont('TimesNewRomanBold', 'timesbd.ttf'))
+from .font_loader import load_font
 
 
 def create_pdf(name: str, date_of_birth_str: str) -> tuple[bytes, str]:
