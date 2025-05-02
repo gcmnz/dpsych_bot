@@ -519,9 +519,6 @@ def create_pdf(name: str, date_of_birth_str: str) -> tuple[bytes, str]:
     text = f"""<font name="TimesNewRomanBold" size="12" color={Color.Red}>{name}, я от всей души желаю Вам успеха!</font>"""
     create_text(elements, alignment=1, space_after=10, text=text)
 
-    text = f"""<font name="TimesNewRomanBold" size="12" color={Color.Red}>С Уважением,</font>"""
-    create_text(elements, alignment=1, text=text)
-
     # Создание PDF
     doc.build(elements)
     pdf_buffer.seek(0)
