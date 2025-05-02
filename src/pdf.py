@@ -458,54 +458,7 @@ def create_pdf(name: str, date_of_birth_str: str) -> tuple[bytes, str]:
     ]))
     elements.append(table)
 
-    create_text(elements, alignment=1, space_before=10, space_after=10, leading=17, text=f"""<font name="TimesNewRomanItalicBold" size="12"
-    color={Color.Blue}>Линии в матрице
-    </font>
-    <font name="TimesNewRomanItalic" size="12"
-    color={Color.Brown}>(сочетание энергий формируют характерные черты личности и
-        врождённый потенциал)
-    </font>
-    """)
-
-    create_text(elements, alignment=0, space_before=10, space_after=10, left_indent=20, leading=17,
-                text=f"""
-                <font name="TimesNewRoman" size="15"> • </font>
-                <font name="TimesNewRomanItalicBold" size="12" color={Color.Blue}
-                >Программа эгоцентризма</font>
-                <font name="TimesNewRoman" size="12">
-                («Я хочу, чтобы все думали и делали только так, как я хочу»)</font>
-                """)
-
-    create_text(elements, alignment=0, space_before=30, space_after=30, left_indent=20, leading=17,
-                text=f"""
-                <font name="TimesNewRoman" size="15"> • </font>
-                <font name="TimesNewRomanItalicBold" size="12" color={Color.Blue}
-                >Знания перетекают в опыт</font>
-                <font name="TimesNewRoman" size="12">
-                (4-8, где 4 – знания, 8 – опыт/практика/труд</font>
-                """)
-
-    create_text(elements, alignment=0, space_before=30, space_after=30, left_indent=20, leading=20,
-                text=f"""
-                <font name="TimesNewRoman" size="15"> • </font>
-                <font name="TimesNewRomanItalicBold" size="12" color={Color.Blue}
-                >Быстрое восстановление</font>
-                <font name="TimesNewRoman" size="12">
-                (перезагрузка) (где 6 – комфорт/отдых, 8 –
-                труд/безмятежность. Человек способен быстро восстанавливать свои силы</font>
-                """)
-
-    create_text(elements, alignment=0, space_before=30, space_after=30, left_indent=20, leading=17,
-                text=f"""
-                <font name="TimesNewRoman" size="15"> • </font>
-                <font name="TimesNewRomanItalicBold" size="12" color={Color.Blue}
-                >Линия конечного результата</font>
-                <font name="TimesNewRoman" size="12">
-                (способность видеть конечный результат дела ещё до его
-                начала, умение завершать дела)</font>
-                """)
-
-    create_text(elements, alignment=0, space_after=15, text=f"""<font name="TimesNewRomanItalicBold" size="12" color={Color.Blue}>В Вашей матрице заложены следующие энергии:</font>""")
+    create_text(elements, alignment=0, space_before=15, space_after=15, text=f"""<font name="TimesNewRomanItalicBold" size="12" color={Color.Blue}>В Вашей матрице заложены следующие энергии:</font>""")
     create_matrix_energy(elements, est_energy)
 
     create_text(elements, alignment=0, space_after=15, space_before=20,
