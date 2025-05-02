@@ -34,7 +34,6 @@ def is_valid_date(date: str) -> bool:
         return False
 
 
-
 if __name__ == '__main__':
     # Примеры использования
     print(is_valid_date("29.02.2020"))  # True, високосный год

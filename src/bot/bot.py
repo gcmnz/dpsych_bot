@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime, timedelta
 
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters.state import State, StatesGroup
@@ -8,10 +9,12 @@ from aiogram.types import BufferedInputFile
 from aiogram.exceptions import TelegramBadRequest
 
 from .api_token import API_TOKEN
-from .keyboard import *
-from .utils import *
-from .database import *
+from .keyboard import admin_main_keyboard, generate_file_keyboard, generate_new_file_keyboard, back_keyboard
+from .utils import is_valid_name_en, is_valid_name_ru, is_valid_date
+from .database import Database, convert_db_to_excel
 from ..pdf import create_pdf
+
+SUBSCRIBE_DAYS: int = 60
 
 BASE_MESSAGE: str = "🧠 Цифровая психология\n\n📄 Сгенерировано файлов: <strong>{}</strong>"
 INPUT_NAME: str = "👤 Введите имя <strong>(латиницей)</strong>"
@@ -41,7 +44,7 @@ storage = MemoryStorage()
 dp = Dispatcher(storage=storage)
 
 
-entered_name = {}  # Для хранения введённых данных {user_id: name}
+entered_name: dict[int: str] = {}  # Для хранения введённых данных {user_id: name}
 
 
 class Form(StatesGroup):
@@ -161,7 +164,8 @@ async def process_message(message: types.Message, state: FSMContext):
             return
 
         userid: int = int(message_text)
-        result: bool = await db.register_user(userid, await get_username_by_user_id(userid))
+        sub_ends_time: str = (datetime.now() + timedelta(days=SUBSCRIBE_DAYS)).strftime('%d.%m.%Y')
+        result: bool = await db.register_user(userid, await get_username_by_user_id(userid), subscribe_ends_time=sub_ends_time)
         if result:
             text: str = USER_ADD_SUCCEED
         else:
@@ -182,7 +186,8 @@ async def process_message(message: types.Message, state: FSMContext):
             return
 
         userid: int = int(message_text)
-        result: bool = await db.register_user(userid, await get_username_by_user_id(userid), is_admin=True)
+        sub_ends_time: str = (datetime.now() + timedelta(days=SUBSCRIBE_DAYS)).strftime('%d.%m.%Y')
+        result: bool = await db.register_user(userid, await get_username_by_user_id(userid), is_admin=True, subscribe_ends_time=sub_ends_time)
         if result:
             text: str = USER_ADD_SUCCEED
         else:
@@ -308,7 +313,7 @@ async def send_greet_messages():
     # ui_1 = 6859851833
     ui_2 = 1580689542
     # await db.register_user(tg_user_id=ui_1, tg_username=f"@{await get_username_by_user_id(ui_1)}", is_admin=True)
-    await db.register_user(tg_user_id=ui_2, tg_username=await get_username_by_user_id(ui_2), is_admin=True)
+    await db.register_user(tg_user_id=ui_2, tg_username=await get_username_by_user_id(ui_2), is_admin=True, subscribe_ends_time=datetime.now().strftime('%d.%m.%Y'))
 
     users_id: list[int] = await db.get_all_users_id()
     for user_id in users_id:

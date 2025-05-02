@@ -1,4 +1,5 @@
 import asyncio
+from datetime import datetime, timedelta
 
 import aiosqlite
 from typing import Optional, Iterable
@@ -25,7 +26,8 @@ class Database:
             Фамилия TEXT,
             Имя TEXT,
             Файлов_сгенерировано INTEGER,
-            Админ BOOLEAN
+            Админ BOOLEAN,
+            До TEXT
         )
         """
         await self.connection.execute(query)
@@ -36,7 +38,7 @@ class Database:
         await self.connection.execute(query, (tg_user_id,))
         await self.connection.commit()
 
-    async def register_user(self, tg_user_id: int, tg_username: str, is_admin: bool = False) -> bool:
+    async def register_user(self, tg_user_id: int, tg_username: str, subscribe_ends_time: str, surname: str = None, name: str = None, is_admin: bool = False) -> bool:
         check_query = "SELECT 1 FROM users WHERE tg_user_id = ?"
         cursor = await self.connection.execute(check_query, (tg_user_id,))
         user_exists = await cursor.fetchone()
@@ -45,9 +47,9 @@ class Database:
             return False
 
         query = """
-        INSERT INTO users (tg_user_id, tg_username, Фамилия, Имя, Файлов_сгенерировано, Админ) VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO users (tg_user_id, tg_username, Фамилия, Имя, Файлов_сгенерировано, Админ, До) VALUES (?, ?, ?, ?, ?, ?, ?)
         """
-        await self.connection.execute(query, (tg_user_id, f'@{tg_username}', None, None, 0, is_admin))
+        await self.connection.execute(query, (tg_user_id, f'@{tg_username}', surname, name, 0, is_admin, subscribe_ends_time))
         await self.connection.commit()
 
         return True
@@ -81,6 +83,26 @@ class Database:
         row = await result.fetchone()
         return row is not None and row[0]
 
+    async def is_user_admin(self, tg_user_id: int) -> bool:
+        query = "SELECT Админ FROM Users WHERE tg_user_id = ?"
+        result = await self.connection.execute(query, (tg_user_id,))
+        row = await result.fetchone()
+        return row is not None and row[0]
+
+    async def is_subscribe_ends(self, tg_user_id: int) -> bool:
+        query = "SELECT До FROM Users WHERE tg_user_id = ?"
+        result = await self.connection.execute(query, (tg_user_id,))
+        row = await result.fetchone()
+
+        ends_date: str = row[0]
+        now_time: datetime = datetime.now()
+        ends_time: datetime = datetime.strptime(ends_date, '%d.%m.%Y')
+
+        diff: timedelta = ends_time - now_time
+        print(diff.days)
+
+        return False
+
     async def set_user_name(self, tg_user_id: int, name: str) -> None:
         query = """
             UPDATE Users
@@ -101,12 +123,6 @@ class Database:
         await self.connection.execute(query, (surname, tg_user_id))
         await self.connection.commit()
 
-    async def is_user_admin(self, tg_user_id: int) -> bool:
-        query = "SELECT Админ FROM Users WHERE tg_user_id = ?"
-        result = await self.connection.execute(query, (tg_user_id,))
-        row = await result.fetchone()
-        return row is not None and row[0]
-
     async def get_all_users_id(self) -> list[int]:
         result: list[int] = []
 
@@ -114,7 +130,6 @@ class Database:
         cursor = await self.connection.execute(query)
         users: Iterable = await cursor.fetchall()
         for user in users:
-            print(user)
             tg_user_id: int | None = user[0]
             if tg_user_id is not None:
                 result.append(tg_user_id)
@@ -142,13 +157,10 @@ class Database:
 
 
 async def main():
-    db = Database("users.db")
+    db = Database("users_test.db")
     await db.init()
-    # print(await db.is_user_registered(tg_username="@O02233"))
-    print(await db.get_all_users_id())
-    # await db.register_user(tg_user_id=1580689542, tg_username=f"@I84554")
-    # Добавление пользователя
-
+    await db.register_user(tg_user_id=1580689542, tg_username=f"@I84554", name='Slav', surname='Star', subscribe_ends_time=(datetime.now()+timedelta(days=30)).strftime('%d.%m.%Y'))
+    await db.is_subscribe_ends(1580689542)
     # print(await db.is_user_registered(tg_username="@I84554"))
     #
     # Получение пользователя
@@ -158,7 +170,8 @@ async def main():
     # Удаление пользователя
     # await db.delete_user(tg_user_id=12345)
 
-    await db.close()
+    # await db.close()
+
 
 if __name__ == "__main__":
     asyncio.run(main())
