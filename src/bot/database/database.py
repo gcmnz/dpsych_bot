@@ -27,7 +27,7 @@ class Database:
             Имя TEXT,
             Файлов_сгенерировано INTEGER,
             Админ BOOLEAN,
-            До TEXT
+            Доступ_до TEXT
         )
         """
         await self.connection.execute(query)
@@ -47,7 +47,7 @@ class Database:
             return False
 
         query = """
-        INSERT INTO users (tg_user_id, tg_username, Фамилия, Имя, Файлов_сгенерировано, Админ, До) VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO users (tg_user_id, tg_username, Фамилия, Имя, Файлов_сгенерировано, Админ, Доступ_до) VALUES (?, ?, ?, ?, ?, ?, ?)
         """
         await self.connection.execute(query, (tg_user_id, f'@{tg_username}', surname, name, 0, is_admin, subscribe_ends_time))
         await self.connection.commit()
@@ -90,7 +90,7 @@ class Database:
         return row is not None and row[0]
 
     async def is_subscribe_ends(self, tg_user_id: int) -> bool:
-        query = "SELECT До FROM Users WHERE tg_user_id = ?"
+        query = "SELECT Доступ_до FROM Users WHERE tg_user_id = ?"
         result = await self.connection.execute(query, (tg_user_id,))
         row = await result.fetchone()
 
@@ -99,9 +99,8 @@ class Database:
         ends_time: datetime = datetime.strptime(ends_date, '%d.%m.%Y')
 
         diff: timedelta = ends_time - now_time
-        print(diff.days)
 
-        return False
+        return diff.days < 0
 
     async def set_user_name(self, tg_user_id: int, name: str) -> None:
         query = """
@@ -121,6 +120,16 @@ class Database:
             """
         # Выполнение запроса с использованием подготовленного выражения
         await self.connection.execute(query, (surname, tg_user_id))
+        await self.connection.commit()
+
+    async def extend_subscribe(self, tg_user_id: int, sub_ends_time: str) -> None:
+        query = """
+            UPDATE Users
+            SET Доступ_до = ?
+            WHERE tg_user_id = ?
+            """
+        # Выполнение запроса с использованием подготовленного выражения
+        await self.connection.execute(query, (sub_ends_time, tg_user_id))
         await self.connection.commit()
 
     async def get_all_users_id(self) -> list[int]:
@@ -159,8 +168,9 @@ class Database:
 async def main():
     db = Database("users_test.db")
     await db.init()
-    await db.register_user(tg_user_id=1580689542, tg_username=f"@I84554", name='Slav', surname='Star', subscribe_ends_time=(datetime.now()+timedelta(days=30)).strftime('%d.%m.%Y'))
-    await db.is_subscribe_ends(1580689542)
+    # await db.delete_user(1580689542)
+    await db.register_user(tg_user_id=1580689542, tg_username=f"@I84554", name='Slav', surname='Star', subscribe_ends_time=(datetime.now() + timedelta(days=1)).strftime('%d.%m.%Y'))
+    print(await db.is_subscribe_ends(1580689542))
     # print(await db.is_user_registered(tg_username="@I84554"))
     #
     # Получение пользователя

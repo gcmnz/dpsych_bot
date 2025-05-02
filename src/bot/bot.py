@@ -15,18 +15,23 @@ from .database import Database, convert_db_to_excel
 from ..pdf import create_pdf
 
 SUBSCRIBE_DAYS: int = 60
+SUBSCRIBE_DAYS_FOR_ADMIN: int = 5555
 
 BASE_MESSAGE: str = "🧠 Цифровая психология\n\n📄 Сгенерировано файлов: <strong>{}</strong>"
 INPUT_NAME: str = "👤 Введите имя <strong>(латиницей)</strong>"
 INPUT_DATE: str = '📅 Введите дату в формате дд.мм.гггг'
 INCORRECT_NAME: str = '❌ Введено некорректное имя'
 ACCOUNT_NOT_REGISTERED: str = "⚠️ Вы не зарегистрированы в системе\nУникальный идентификатор: <code>{}</code>"
+SUBSCRIBE_EXTENDED_SUCCEED: str = '✅ Доступ успешно продлён до <strong>{}</strong>'
+SUBSCRIBE_ENDS: str = '❌ Срок действия доступа истёк. Для продления обратитесь к администаторам\nУникальный идентификатор: <code>{}</code>'
 
 INPUT_USER_IDENTIFER: str = '🆔 Введите уникальный идентификатор пользователя'
 INCORRECT_IDENTIFER: str = '❌ Введён некорректный идентификатор'
 U_ARE_NOT_ADMIN: str = '🔒 Не достаточно прав для выполнения данного действия'
-USER_ADD_SUCCEED: str = '✅ Пользователь успешно добавлен'
+USER_ADD_SUCCEED: str = '✅ Пользователь успешно добавлен. доступ действует до <strong>{}</strong>'
+ADMIN_ADD_SUCCEED: str = '✅ Администратор успешно добавлен. доступ действует до <strong>{}</strong>'
 USER_ALREADY_REGISTERED: str = '⚠️ Пользователь уже зарегистрирован'
+ADMIN_ALREADY_REGISTERED: str = '⚠️ Администратор уже зарегистрирован'
 USER_NOT_REGISTERED: str = '❌ Пользователь не зарегистрирован'
 USER_DELETE_SUCCEED: str = '✅ Пользователь успешно удалён'
 WAITING_FOR_FILE_GENERATION: str = '⏳ Файл создаётся, ожидайте...'
@@ -68,6 +73,10 @@ async def process_message(message: types.Message, state: FSMContext):
 
     if not await db.is_user_registered(user_id):
         await message.answer(ACCOUNT_NOT_REGISTERED.format(user_id), parse_mode='HTML')
+        return
+
+    if await db.is_subscribe_ends(user_id):
+        await message.answer(SUBSCRIBE_ENDS.format(user_id), parse_mode='HTML')
         return
 
     if not await db.is_user_has_name(user_id):
@@ -165,15 +174,27 @@ async def process_message(message: types.Message, state: FSMContext):
 
         userid: int = int(message_text)
         sub_ends_time: str = (datetime.now() + timedelta(days=SUBSCRIBE_DAYS)).strftime('%d.%m.%Y')
-        result: bool = await db.register_user(userid, await get_username_by_user_id(userid), subscribe_ends_time=sub_ends_time)
-        if result:
-            text: str = USER_ADD_SUCCEED
-        else:
-            text: str = USER_ALREADY_REGISTERED
 
         await state.set_state(Form.main_menu)
-        await bot.send_message(chat_id=user_id, text=text, reply_markup=admin_main_keyboard, parse_mode='HTML')
+
+        if await db.is_user_registered(userid):
+            if await db.is_subscribe_ends(userid):
+                # Просто продливаем доступ
+                await db.extend_subscribe(userid, sub_ends_time)
+                await bot.send_message(chat_id=user_id, text=SUBSCRIBE_EXTENDED_SUCCEED.format(sub_ends_time), reply_markup=admin_main_keyboard, parse_mode='HTML')
+                await bot.send_message(chat_id=userid, text=BASE_MESSAGE.format(await db.get_user_generated_files(user_id)), reply_markup=generate_file_keyboard, parse_mode='HTML')
+
+                return
+
+            await bot.send_message(chat_id=user_id, text=USER_ALREADY_REGISTERED, reply_markup=admin_main_keyboard, parse_mode='HTML')
+
+            return
+
+        # Регистрируем
+        await db.register_user(tg_user_id=userid, tg_username=await get_username_by_user_id(userid), subscribe_ends_time=sub_ends_time)
+        await bot.send_message(chat_id=user_id, text=USER_ADD_SUCCEED.format(sub_ends_time), reply_markup=admin_main_keyboard, parse_mode='HTML')
         await bot.send_message(chat_id=userid, text=BASE_MESSAGE.format(await db.get_user_generated_files(user_id)), reply_markup=generate_file_keyboard, parse_mode='HTML')
+
 
     elif current_state == Form.add_admin:
         if not await db.is_user_admin(user_id):
@@ -186,12 +207,17 @@ async def process_message(message: types.Message, state: FSMContext):
             return
 
         userid: int = int(message_text)
-        sub_ends_time: str = (datetime.now() + timedelta(days=SUBSCRIBE_DAYS)).strftime('%d.%m.%Y')
+
+        if await db.is_user_registered(userid):
+            await bot.send_message(chat_id=user_id, text=USER_ALREADY_REGISTERED, reply_markup=admin_main_keyboard, parse_mode='HTML')
+            return
+
+        sub_ends_time: str = (datetime.now() + timedelta(days=SUBSCRIBE_DAYS_FOR_ADMIN)).strftime('%d.%m.%Y')
         result: bool = await db.register_user(userid, await get_username_by_user_id(userid), is_admin=True, subscribe_ends_time=sub_ends_time)
         if result:
-            text: str = USER_ADD_SUCCEED
+            text: str = ADMIN_ADD_SUCCEED.format(sub_ends_time)
         else:
-            text: str = USER_ALREADY_REGISTERED
+            text: str = ADMIN_ALREADY_REGISTERED
 
         await state.set_state(Form.main_menu)
         await bot.send_message(chat_id=user_id, text=text, reply_markup=admin_main_keyboard, parse_mode='HTML')
@@ -219,6 +245,14 @@ async def process_message(message: types.Message, state: FSMContext):
 async def process_callback_generate_file(callback_query: types.CallbackQuery, state: FSMContext):
     chat_id: int = callback_query.from_user.id
     message_id: int = callback_query.message.message_id
+
+    if not await db.is_user_registered(chat_id):
+        await bot.send_message(chat_id=chat_id, text=ACCOUNT_NOT_REGISTERED.format(chat_id), parse_mode='HTML')
+        return
+
+    if await db.is_subscribe_ends(chat_id):
+        await bot.send_message(chat_id=chat_id, text=SUBSCRIBE_ENDS.format(chat_id), parse_mode='HTML')
+        return
 
     if not await db.is_user_has_name(chat_id):
         await state.set_state(Form.input_name)
@@ -313,7 +347,7 @@ async def send_greet_messages():
     # ui_1 = 6859851833
     ui_2 = 1580689542
     # await db.register_user(tg_user_id=ui_1, tg_username=f"@{await get_username_by_user_id(ui_1)}", is_admin=True)
-    await db.register_user(tg_user_id=ui_2, tg_username=await get_username_by_user_id(ui_2), is_admin=True, subscribe_ends_time=datetime.now().strftime('%d.%m.%Y'))
+    await db.register_user(tg_user_id=ui_2, tg_username=await get_username_by_user_id(ui_2), is_admin=True, subscribe_ends_time=(datetime.now() + timedelta(days=2)).strftime('%d.%m.%Y'))
 
     users_id: list[int] = await db.get_all_users_id()
     for user_id in users_id:
