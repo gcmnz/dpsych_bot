@@ -230,7 +230,7 @@ def zadacha_by_6(elements):
 желание трудиться, а труд приведет к финансовому успеху»"""
     create_text(elements, alignment=0, space_before=15, space_after=15, leading=17, text=f"""<font name="TimesNewRomanItalicBold" size="12" color={Color.Orange}>{text}</font>""")
 
-    text = """Как только Вы поднимете энергию в голову, у Вас появятся творческие идеи и неуёмное желание их
+    text = """Как только Вы поднимете энергию в голову, у Вас появятся творческие идеи и неуёмное желание их
 претворять в жизнь (реальность)."""
     create_text(elements, alignment=0, space_before=10, space_after=15, leading=17, text=f"""<font name="TimesNewRoman" size="12">{text}</font>""")
 
