@@ -480,7 +480,7 @@ def get_color_chs_by_soznanie(chislo_soznaniya: int):
 
 def get_color_wallet_by_soznanie(chislo_soznaniya: int):
     d = {1: "серебристый",
-         2: "серебристый",
+         2: "жёлтый",
          3: "красный",
          4: "серо-лиловый",
          5: "зелёный",
@@ -494,9 +494,9 @@ def get_color_wallet_by_soznanie(chislo_soznaniya: int):
 
 def get_color_gamma_clothes_by_soznanie(chislo_soznaniya: int) -> str:
     d = {1: "красный, белый",
-         2: "красный, белый",
+         2: "белый, светло-зелёный",
          3: "жёлтый",
-         4: "зелёный, синий, серый",
+         4: "зелёный, серый, синий",
          5: "зелёный, синий",
          6: "розовый, бирюзовый, голубой",
          7: "зелёный, серый, синий",
@@ -508,7 +508,7 @@ def get_color_gamma_clothes_by_soznanie(chislo_soznaniya: int) -> str:
 
 def get_week_day_by_soznanie(chislo_soznaniya: int) -> str:
     d = {1: "воскресенье",
-         2: "воскресенье",
+         2: "понедельник",
          3: "четверг",
          4: "четверг",
          5: "среда",
