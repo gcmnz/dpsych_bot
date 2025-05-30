@@ -14,7 +14,7 @@ from .utils import is_valid_name_en, is_valid_name_ru, is_valid_date
 from .database import Database, convert_db_to_excel
 from ..pdf import create_pdf
 
-SUBSCRIBE_DAYS: int = 60
+SUBSCRIBE_DAYS: int = 30
 SUBSCRIBE_DAYS_FOR_ADMIN: int = 5555
 
 BASE_MESSAGE: str = "🧠 Цифровая психология\n\n📄 Сгенерировано файлов: <strong>{}</strong>"
