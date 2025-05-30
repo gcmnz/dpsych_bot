@@ -8,7 +8,7 @@ async def main() -> None:
 
     tasks: list[asyncio.Task] = [
         asyncio.create_task(dp.start_polling(bot)),
-        asyncio.create_task(send_greet_messages())
+        # asyncio.create_task(send_greet_messages())
     ]
 
     await asyncio.gather(*tasks)
