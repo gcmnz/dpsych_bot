@@ -466,7 +466,7 @@ def get_triggets_list(chislo_soznaniya: int) -> list[str]:
 
 def get_color_chs_by_soznanie(chislo_soznaniya: int):
     d = {1: "желтый",
-         2: "жёлтый",
+         2: "серебристый",
          3: "оранжевый",
          4: "серо-коричневый",
          5: "зелёный",
