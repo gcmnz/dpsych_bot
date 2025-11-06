@@ -1,7 +1,7 @@
 from datetime import datetime
 
 en_alphabet: str = 'abcdefghijklmnopqrstuvwxyz'
-ru_alphabet: str = 'абвгдежзийклмнопрстуфхцчшщъыьэюя'
+ru_alphabet: str = 'абвгдежзийклмнопрстуфхцчшщъыьэюя'
 
 
 def is_valid_name_en(name: str) -> bool:
