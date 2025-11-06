@@ -486,7 +486,7 @@ def create_pdf(name: str, date_of_birth_str: str) -> tuple[bytes, str]:
     elements.append(Spacer(1, 10))
 
     create_orange_rect(elements, doc.width, 30, f"""
-    <font name="TimesNewRomanItalicBold" size="16" color="white">Ваш личный год {datetime.now().year} г. - {lichniy_god}</font><br/>
+    <font name="TimesNewRomanItalicBold" size="16" color="white">Ваш личный год 2026 г. - {lichniy_god}</font><br/>
     """)
 
     text = f"""
