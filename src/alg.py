@@ -25,7 +25,7 @@ def count_vector_zhizni(chislo_deystviya: int) -> int:
 
 
 def count_lichniy_god(dd_mm_of_birth: str) -> int:
-    return count_date_to_digit(f'{dd_mm_of_birth}') + 1
+    return count_date_to_digit(f'{dd_mm_of_birth}1')
 
 
 def count_name_energy_digit(name: str) -> int:
