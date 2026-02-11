@@ -1,14 +1,76 @@
 import io
 
-from reportlab.platypus import SimpleDocTemplate
+from reportlab.lib.units import cm
+from reportlab.platypus import SimpleDocTemplate, PageTemplate, Frame
 from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_LEFT
 
-from .alg import *
-from .utils import *
-from .getters_text import *
-from .font_loader import load_font
+if __name__ == '__main__':
+    from alg import *
+    from utils import *
+    from getters_text import *
+    from font_loader import load_font
+
+else:
+    from .alg import *
+    from .utils import *
+    from .getters_text import *
+    from .font_loader import load_font
+
+
+MAIN_SIZE = 22
+HIGHLIGHTED_SIZE = 22
+BIG_SIZE = 34
+
+PAGE_W = 1000
+PAGE_H = 1300
+
+# Стиль для шапки
+header_style = ParagraphStyle(
+    name='HeaderStyle',
+    fontName='OpenSansBold',
+    fontSize=BIG_SIZE,
+    alignment=1,
+    textColor=Color.Highlighted,
+    leading=BIG_SIZE + 4
+)
+
+# Текст шапки
+header_text = "институт цифровой психологии и коучинга"
+subheader_text = "По методу Изиды Кадыровой"
+
+def header_canvas(canvas, doc):
+    canvas.saveState()
+
+    # Первый текст (шапка)
+    header_style = ParagraphStyle(
+        name='HeaderStyle',
+        fontName='OpenSans',
+        fontSize=BIG_SIZE,
+        leading=BIG_SIZE + 4,
+        alignment=1,
+        textColor=Color.Highlighted
+    )
+    header_para = Paragraph(header_text, header_style)
+    width, height = header_para.wrap(PAGE_W - 80 * 2, 80)
+    y_position = PAGE_H - 40 - height + 5
+    header_para.drawOn(canvas, (PAGE_W - width) / 2, y_position)
+
+    # Второй текст (подшапка) с меньшим шрифтом
+    subheader_style = ParagraphStyle(
+        name='SubHeaderStyle',
+        fontName='Vasek',
+        fontSize=BIG_SIZE - 6,  # чуть меньше
+        leading=(BIG_SIZE - 6) + 2,
+        alignment=1,
+        textColor=Color.Highlighted
+    )
+    subheader_para = Paragraph(subheader_text, subheader_style)
+    sub_width, sub_height = subheader_para.wrap(PAGE_W - 80 * 2, 50)
+    # Смещаем вниз на высоту первой шапки плюс небольшой отступ
+    subheader_para.drawOn(canvas, (PAGE_W - sub_width) / 2, y_position - sub_height - 5)
+
+    canvas.restoreState()
 
 
 def create_pdf(name: str, date_of_birth_str: str) -> tuple[bytes, str]:
@@ -92,99 +154,112 @@ def create_pdf(name: str, date_of_birth_str: str) -> tuple[bytes, str]:
 
     recomendations_na_god: str = get_recomendations_na_god(lichniy_god)
 
-    doc = SimpleDocTemplate(pdf_buffer, pagesize=(595, 720), leftMargin=42, rightMargin=42, topMargin=30, bottomMargin=20)
     elements: list[Flowable] = []
 
     # Стили текста
     styles = getSampleStyleSheet()
+
+    doc = SimpleDocTemplate(pdf_buffer, pagesize=(PAGE_W, PAGE_H), leftMargin=80, rightMargin=80, topMargin=130, bottomMargin=20)
+
+    frame = Frame(
+        doc.leftMargin,
+        doc.bottomMargin,
+        doc.width,
+        doc.height - 50,  # Вычитаем пространство шапки
+        id='normal'
+    )
+    # PageTemplate с нашей функцией header
+    template = PageTemplate(id='with_header', frames=frame, onPage=header_canvas)
+    doc.addPageTemplates([template])
+
     styles.add(ParagraphStyle(
-        name='TimesNewRomanCenter',
-        fontName='TimesNewRoman',
-        fontSize=12,
+        name='OpenSansCenter',
+        fontName='OpenSans',
+        fontSize=MAIN_SIZE,
         alignment=TA_CENTER,
-        leading=18  # Межстрочный интервал
+        leading=40  # Межстрочный интервал
     ))
 
     styles.add(ParagraphStyle(
-        name='TimesNewRomanNormal',
-        fontName='TimesNewRoman',
-        fontSize=12,
-        leading=16  # Увеличенный межстрочный интервал
+        name='OpenSansNormal',
+        fontName='OpenSans',
+        fontSize=22,
+        leading=30  # Увеличенный межстрочный интервал
     ))
     styles.add(ParagraphStyle(
         name='Table',
-        fontName='TimesNewRoman',
+        fontName='OpenSans',
         alignment=1,
         leading=20
     ))
 
-    create_text(elements, alignment=2, space_after=20,
-                text=f'<font name="TimesNewRomanItalic" size="10" color={Color.Black}>Дата составления документа {datetime.now().strftime('%d.%m.%Y')}</font>'
+    create_text(elements, alignment=2, space_after=10,
+                text=f'<font name="OpenSans" size="12" color={Color.Main}>Дата составления документа {datetime.now().strftime('%d.%m.%Y')}</font>'
                 )
 
-    create_text(elements, alignment=2, space_after=10, text=f"""
-                    <font name="TimesNewRomanItalicBold" size="14" color={Color.Orange}>«Познание начинается с удивления»</font>
+    create_text(elements, alignment=2, space_after=5, leading=32, text=f"""
+                    <font name="Vasek" size="{42}" color={Color.Highlighted}>«Познание начинается с удивления»</font>
                 """)
 
-    create_text(elements, alignment=2, space_after=75, text=f"""
-        <font name="TimesNewRomanItalicBold" size="14" color={Color.Orange}>Аристотель</font>
+    create_text(elements, alignment=2, space_after=75, leading=32, text=f"""
+        <font name="Vasek" size="{42}" color={Color.Highlighted}>Аристотель</font>
     """)
 
-    create_text(elements, alignment=1, space_after=38, text=f"""
-        <font name="TimesNewRomanItalicBold" size="14" color={Color.Blue}>Цифровая психология - стратегия счастливой жизни.</font>
-    """)
-
-    create_text(elements, alignment=1, space_after=38, text=f"""
-        <font name="TimesNewRomanItalicBold" size="14" color={Color.Orange}>{name} (дата рождения {date_of_birth_str} - {week_day_of_birth}) {chislo_soznaniya} / {chislo_deystviya}</font>
+    create_text(elements, alignment=1, left_indent=30, space_after=38, leading=32, text=f"""
+        <font name="OpenSans" size="{BIG_SIZE}" color={Color.Highlighted}>Цифровая психология - стратегия счастливой жизни.</font>
     """)
 
     create_text(elements, alignment=1, space_after=20, text=f"""
-        <font name="TimesNewRomanItalicBold" size="14" color={Color.Blue}>Энергия имени</font>
-        <font name="TimesNewRomanBold" size="14" color={Color.Name}>{name.upper()}</font>
-        <font name="TimesNewRoman" size="14" color={Color.Black}> - {name_energy_digit} {name_energy_description}</font>
+        <font name="OpenSansBold" size="{HIGHLIGHTED_SIZE}" color="{Color.Highlighted}">{name} </font>
+        <font name="OpenSans" size="{MAIN_SIZE}" color="{Color.Main}">(дата рождения {date_of_birth_str} - {week_day_of_birth}) {chislo_soznaniya} / {chislo_deystviya}</font>"
     """)
 
-    create_orange_rect(elements, doc.width, 50, f"""
-    <font name="TimesNewRomanItalicBold" size="16" color="white">Ваше Число сознания - {chislo_soznaniya}</font><br/>
-    <font name="TimesNewRomanItalic" size="14" color="white">(Положительные и отрицательные аспекты программы ума)</font>
+    create_text(elements, alignment=1, space_after=40, text=f"""
+        <font name="OpenSansBold" size="{HIGHLIGHTED_SIZE}" color={Color.Highlighted}>Энергия имени {name.upper()}</font>
+        <font name="OpenSans" size="{HIGHLIGHTED_SIZE}" color={Color.Black}> - {name_energy_digit} {name_energy_description}</font>
     """)
 
-    pl_text = f"""<font name="TimesNewRomanItalicBold" size="12" color={Color.Blue}>Планета</font>"""
+    create_orange_rect(elements, doc.width, 110, f"""
+    <font name="OpenSans" size="{BIG_SIZE}" color="{Color.TableText}">Ваше Число сознания - {chislo_soznaniya}</font><br/>
+    <font name="OpenSans" size="{HIGHLIGHTED_SIZE}" color="{Color.TableText}">(Положительные и отрицательные аспекты программы ума)</font>
+    """)
+
+    pl_text = f"""<font name="OpenSansBold" size="{HIGHLIGHTED_SIZE}" color={Color.Highlighted}>Планета</font>"""
     planeta = f"""{pl_text}
-        <font name="TimesNewRoman" size="12" color={Color.Black}> – {planet_by_soznanie}</font>
+        <font name="OpenSans" size="{MAIN_SIZE}" color={Color.Main}> – {planet_by_soznanie}</font>
     """
 
-    brief_description_text = f"""<font name="TimesNewRomanItalicBold" size="12" color={Color.Blue}>Краткое описание личности по дате рождения:</font>"""
+    brief_description_text = f"""<font name="OpenSansBold" size="{HIGHLIGHTED_SIZE}" color={Color.Highlighted}>Краткое описание личности по дате рождения:</font>"""
     brief_description = f"""{brief_description_text}<br/>
-    <font name="TimesNewRoman" size="12" color={Color.Black}>
+    <font name="OpenSans" size="{MAIN_SIZE}" color={Color.Main}>
         {name}, {brief_by_soznanie}</font>
     """
 
-    vector_sozn_text = f"""<font name="TimesNewRomanBold" size="12" color={Color.Blue}>Сознание направлено на</font>"""
+    vector_sozn_text = f"""<font name="OpenSansBold" size="{HIGHLIGHTED_SIZE}" color={Color.Highlighted}>Сознание направлено на</font>"""
     vector_sozn = f"""{vector_sozn_text}
-        <font name="TimesNewRoman" size="12" color="{Color.Black}"> {soznanie_napravleno_by_soznanie}</font>
+        <font name="OpenSans" size="{MAIN_SIZE}" color="{Color.Main}"> {soznanie_napravleno_by_soznanie}</font>
     """
 
-    ego_hochet_text = f"""<font name="TimesNewRomanBold" size="12" color={Color.Blue}>Ваше эго хочет:</font>"""
+    ego_hochet_text = f"""<font name="OpenSansBold" size="{HIGHLIGHTED_SIZE}" color={Color.Highlighted}>Ваше эго хочет:</font>"""
     ego_hochet = f"""{ego_hochet_text}
-        <font name="TimesNewRoman" size="12" color="{Color.Black}"> {ego_hochet_by_soznanie}</font>
+        <font name="OpenSans" size="{MAIN_SIZE}" color="{Color.Main}"> {ego_hochet_by_soznanie}</font>
     """
 
-    realizatsia_duwi_text = f"""<font name="TimesNewRomanBold" size="12" color={Color.Blue}>Реализация души</font>"""
+    realizatsia_duwi_text = f"""<font name="OpenSansBold" size="{HIGHLIGHTED_SIZE}" color={Color.Highlighted}>Реализация души</font>"""
     realizatsia_duwi = f"""{realizatsia_duwi_text}
-        <font name="TimesNewRoman" size="12" color="{Color.Black}"> {realizatsia_duwi_by_soznanie}</font>
+        <font name="OpenSans" size="{MAIN_SIZE}" color="{Color.Main}"> {realizatsia_duwi_by_soznanie}</font>
     """
-    princip_communicatsii_text = f"""<font name="TimesNewRomanBold" size="12" color={Color.Blue}>Принцип коммуникации: </font>"""
+    princip_communicatsii_text = f"""<font name="OpenSansBold" size="{HIGHLIGHTED_SIZE}" color={Color.Highlighted}>Принцип коммуникации: </font>"""
     princip_communicatsii = f"""{princip_communicatsii_text}
-        <font name="TimesNewRoman" size="12" color="{Color.Black}"> {princip_communicatsii_by_soznanie}</font>
+        <font name="OpenSans" size="{MAIN_SIZE}" color="{Color.Main}"> {princip_communicatsii_by_soznanie}</font>
     """
 
-    create_text(elements, alignment=0, space_after=0, space_before=12, leading=18, text=planeta)
-    create_text(elements, alignment=0, space_after=0, space_before=12, leading=18, text=brief_description)
-    create_text(elements, alignment=0, space_after=0, space_before=12, leading=18, text=vector_sozn)
-    create_text(elements, alignment=0, space_after=0, space_before=12, leading=18, text=ego_hochet)
-    create_text(elements, alignment=0, space_after=0, space_before=12, leading=18, text=realizatsia_duwi)
-    create_text(elements, alignment=0, space_after=20, space_before=12, leading=18, text=princip_communicatsii)
+    create_text(elements, alignment=0, space_after=0, space_before=12, leading=40, text=planeta)
+    create_text(elements, alignment=0, space_after=0, space_before=12, leading=40, text=brief_description)
+    create_text(elements, alignment=0, space_after=0, space_before=12, leading=40, text=vector_sozn)
+    create_text(elements, alignment=0, space_after=0, space_before=12, leading=40, text=ego_hochet)
+    create_text(elements, alignment=0, space_after=0, space_before=12, leading=40, text=realizatsia_duwi)
+    create_text(elements, alignment=0, space_after=20, space_before=12, leading=40, text=princip_communicatsii)
 
     # Формируем содержимое ячеек
     positive_text: str = format_list(positive_aspect_by_soznanie)
@@ -192,21 +267,21 @@ def create_pdf(name: str, date_of_birth_str: str) -> tuple[bytes, str]:
 
     # Создаем данные для таблицы
     data = [
-        [Paragraph(f'<font name="TimesNewRomanItalicBold" size="12" color={Color.Blue} >В позитивном аспекте (+)</font>', ParagraphStyle(name='', alignment=1)),
-         Paragraph(f'<font name="TimesNewRomanItalicBold" size="12" color={Color.Blue} >В негативном аспекте (-)</font>', ParagraphStyle(name='', alignment=1))],
-        [Paragraph(positive_text, styles['TimesNewRomanNormal']),
-         Paragraph(negative_text, styles['TimesNewRomanNormal'])]
+        [Paragraph(f'<font name="OpenSansBold" size="{MAIN_SIZE}" color={Color.TableText} >В позитивном аспекте (+)</font>', ParagraphStyle(name='', alignment=1)),
+         Paragraph(f'<font name="OpenSansBold" size="{MAIN_SIZE}" color={Color.TableText} >В негативном аспекте (-)</font>', ParagraphStyle(name='', alignment=1))],
+        [Paragraph(positive_text, styles['OpenSansNormal']),
+         Paragraph(negative_text, styles['OpenSansNormal'])]
     ]
     create_2x2_table(elements, doc.width, data)
 
-    tip_mishlenia_text = f"""<font name="TimesNewRomanItalicBold" size="12" color={Color.Blue}>Тип мышления - </font>"""
+    tip_mishlenia_text = f"""<font name="OpenSansBold" size="{MAIN_SIZE}" color={Color.Highlighted}>Тип мышления - </font>"""
     tip_mishlenia = f"""{tip_mishlenia_text}
-        <font name="TimesNewRomanItalicBold" size="12" color={Color.Blue}> {mind_type}</font>
+        <font name="OpenSansBold" size="{MAIN_SIZE}" color={Color.Highlighted}> {mind_type}</font>
     """
-    mishlenie_desk = f"""<font name="TimesNewRoman" size="12" color={Color.Black}>{mind_type_desc}</font>"""
+    mishlenie_desk = f"""<font name="OpenSans" size="{MAIN_SIZE}" color={Color.Main}>{mind_type_desc}</font>"""
 
-    create_text(elements, alignment=0, space_after=0, space_before=12, leading=18, text=tip_mishlenia)
-    create_text(elements, alignment=0, space_after=0, space_before=0, leading=18, text=mishlenie_desk)
+    create_text(elements, alignment=0, space_after=0, space_before=12, leading=40, text=tip_mishlenia)
+    create_text(elements, alignment=0, space_after=0, space_before=0, leading=40, text=mishlenie_desk)
 
     # Формируем содержимое ячеек
     ego_enjoys_by_text: str = format_list(ego_enjoys_by)
@@ -214,53 +289,53 @@ def create_pdf(name: str, date_of_birth_str: str) -> tuple[bytes, str]:
 
     # Создаем данные для таблицы
     data = [
-        [Paragraph(f'<font name="TimesNewRomanItalicBold" size="12" color={Color.Blue} >Эго наслаждается</font>', ParagraphStyle(name='', alignment=1)),
-         Paragraph(f'<font name="TimesNewRomanItalicBold" size="12" color={Color.Blue} >Эго разрушается</font>', ParagraphStyle(name='', alignment=1))],
-        [Paragraph(ego_enjoys_by_text, styles['TimesNewRomanNormal']),
-         Paragraph(ego_destroys_by_text, styles['TimesNewRomanNormal'])]
+        [Paragraph(f'<font name="OpenSansBold" size="{MAIN_SIZE}" color={Color.TableText} >Эго наслаждается</font>', ParagraphStyle(name='', alignment=1)),
+         Paragraph(f'<font name="OpenSansBold" size="{MAIN_SIZE}" color={Color.TableText} >Эго разрушается</font>', ParagraphStyle(name='', alignment=1))],
+        [Paragraph(ego_enjoys_by_text, styles['OpenSansNormal']),
+         Paragraph(ego_destroys_by_text, styles['OpenSansNormal'])]
     ]
     create_2x2_table(elements, doc.width, data)
 
-    create_text(elements, alignment=0, space_after=10, space_before=10,
-                text=f"""<font name="TimesNewRomanBold" size="12" color={Color.Blue}>Триггеры </font><font name="TimesNewRomanItalic" size="12">(ситуации, вызывающие негативные эмоции):</font>""")
+    create_text(elements, alignment=0, space_after=30, space_before=10,
+                text=f"""<font name="OpenSansBold" size="{MAIN_SIZE}" color={Color.Highlighted}>Триггеры (ситуации, вызывающие негативные эмоции):</font>""")
 
     triggers_text: str = format_list(triggets_list)
 
-    create_text(elements, alignment=0, space_before=15, space_after=45, left_indent=20, text=triggers_text)
+    create_text(elements, alignment=0, space_before=15, space_after=45, left_indent=20, leading=20, text=triggers_text)
 
     # Создаем данные для таблицы
     data = [
-        [Paragraph(f'<font name="TimesNewRoman" size="12" color={Color.White}>Цвет<br/>Вашего<br/>ЧС</font>', ParagraphStyle(name='', alignment=1, leading=15)),
-         Paragraph(f'<font name="TimesNewRoman" size="12" color={Color.White}>Цвет<br/>аксессуаров<br/>(кошелёк)</font>', ParagraphStyle(name='', alignment=1, leading=15)),
-         Paragraph(f'<font name="TimesNewRoman" size="12" color={Color.White}>Цветовая<br/>гамма<br/>одежды</font>', ParagraphStyle(name='', alignment=1, leading=15)),
-         Paragraph(f'<font name="TimesNewRoman" size="12" color={Color.White}>Ваш<br/>день<br/>недели</font>', ParagraphStyle(name='', alignment=1, leading=20)),
-         Paragraph(f'<font name="TimesNewRoman" size="12" color={Color.White}>Энергии цифр</font>', ParagraphStyle(name='', alignment=1, leading=15), )],
+        [Paragraph(f'<font name="OpenSansBold" size="{18}" color={Color.TableText}>Цвет<br/>Вашего<br/>ЧС</font>', ParagraphStyle(name='', alignment=1, leading=30)),
+         Paragraph(f'<font name="OpenSansBold" size="{18}" color={Color.TableText}>Цвет<br/>аксессуаров<br/>(кошелёк)</font>', ParagraphStyle(name='', alignment=1, leading=30)),
+         Paragraph(f'<font name="OpenSansBold" size="{18}" color={Color.TableText}>Цветовая<br/>гамма<br/>одежды</font>', ParagraphStyle(name='', alignment=1, leading=30)),
+         Paragraph(f'<font name="OpenSansBold" size="{18}" color={Color.TableText}>Ваш<br/>день<br/>недели</font>', ParagraphStyle(name='', alignment=1, leading=30)),
+         Paragraph(f'<font name="OpenSansBold" size="{18}" color={Color.TableText}>Энергии цифр</font>', ParagraphStyle(name='', alignment=1, leading=30), )],
         [
             "", "", "", "",
-            Paragraph(f'<font name="TimesNewRoman" size="12" color={Color.White}>Лучшая</font>', ParagraphStyle(name='', alignment=1, leading=15)),
-            Paragraph(f'<font name="TimesNewRoman" size="12" color={Color.White}>Хорошая</font>', ParagraphStyle(name='', alignment=1, leading=15)),
-            Paragraph(f'<font name="TimesNewRoman" size="12" color={Color.White}>Нейтральная</font>', ParagraphStyle(name='', alignment=1, leading=15)),
-            Paragraph(f'<font name="TimesNewRoman" size="12" color={Color.White}>Отрицательная</font>', ParagraphStyle(name='', alignment=1, leading=15)),
+            Paragraph(f'<font name="OpenSansBold" size="{18}" color={Color.TableText}>Лучшая</font>', ParagraphStyle(name='', alignment=1, leading=30)),
+            Paragraph(f'<font name="OpenSansBold" size="{18}" color={Color.TableText}>Хорошая</font>', ParagraphStyle(name='', alignment=1, leading=30)),
+            Paragraph(f'<font name="OpenSansBold" size="{18}" color={Color.TableText}>Нейтральная</font>', ParagraphStyle(name='', alignment=1, leading=30)),
+            Paragraph(f'<font name="OpenSansBold" size="{18}" color={Color.TableText}>Отрицательная</font>', ParagraphStyle(name='', alignment=1, leading=30)),
         ],
-        [Paragraph(f'<font name="TimesNewRoman" size="12">{color_chs}</font>', styles['Table']),
-         Paragraph(f'<font name="TimesNewRoman" size="12">{color_wallet}</font>', styles['Table']),
-         Paragraph(f'<font name="TimesNewRoman" size="12">{color_gamma_clothes}</font>', styles['Table']),
-         Paragraph(f'<font name="TimesNewRoman" size="12">{week_day}</font>', styles['Table']),
-         Paragraph(f'<font name="TimesNewRoman" size="12">{best_digit_energy}</font>', styles['Table']),
-         Paragraph(f'<font name="TimesNewRoman" size="12">{good_digit_energy}</font>', styles['Table']),
-         Paragraph(f'<font name="TimesNewRoman" size="12">{neutral_digit_energy}</font>', styles['Table']),
-         Paragraph(f'<font name="TimesNewRoman" size="12">{worst_digit_energy}</font>', styles['Table'])]
+        [Paragraph(f'<font name="OpenSans" size="{20}">{color_chs}</font>', styles['Table']),
+         Paragraph(f'<font name="OpenSans" size="{20}">{color_wallet}</font>', styles['Table']),
+         Paragraph(f'<font name="OpenSans" size="{20}">{color_gamma_clothes}</font>', styles['Table']),
+         Paragraph(f'<font name="OpenSans" size="{20}">{week_day}</font>', styles['Table']),
+         Paragraph(f'<font name="OpenSans" size="{20}">{best_digit_energy}</font>', styles['Table']),
+         Paragraph(f'<font name="OpenSans" size="{20}">{good_digit_energy}</font>', styles['Table']),
+         Paragraph(f'<font name="OpenSans" size="{20}">{neutral_digit_energy}</font>', styles['Table']),
+         Paragraph(f'<font name="OpenSans" size="{20}">{worst_digit_energy}</font>', styles['Table'])]
     ]
 
     # Создаем таблицу с 8 колонками
-    table = Table(data, colWidths=[doc.width * 0.125, doc.width * 0.145, doc.width * 0.145, doc.width * 0.135,
+    table = Table(data, colWidths=[doc.width * 0.125, doc.width * 0.125, doc.width * 0.125, doc.width * 0.125,
                                    doc.width * 0.11, doc.width * 0.11, doc.width * 0.15, doc.width * 0.165])
 
     # Настраиваем стиль таблицы
     table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (7, 0), Color.Orange),
-        ('BACKGROUND', (0, 1), (7, 1), Color.Orange),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ('BACKGROUND', (0, 0), (7, 0), Color.TableBackground),
+        ('BACKGROUND', (0, 1), (7, 1), Color.TableBackground),
+        ('GRID', (0, 0), (-1, -1), 1, Color.Table),
         ('LEFTPADDING', (0, 0), (-1, -1), 1),
         ('RIGHTPADDING', (0, 0), (-1, -1), 1),
         ('TOPPADDING', (0, 0), (-1, -1), 15),
@@ -276,22 +351,22 @@ def create_pdf(name: str, date_of_birth_str: str) -> tuple[bytes, str]:
     # Добавляем таблицу в документ
     elements.append(table)
 
-    bolezni_text = f"""<font name="TimesNewRomanBold" size="12" color={Color.Blue}>Болезни: </font>"""
+    bolezni_text = f"""<font name="OpenSansBold" size="{MAIN_SIZE}" color={Color.Highlighted}>Болезни: </font>"""
     bolezni = f"""{bolezni_text}
-        <font name="TimesNewRoman" size="12" color="{Color.Black}"> {bolezni_by_soznanie}</font>
+        <font name="OpenSans" size="{MAIN_SIZE}" color="{Color.Main}"> {bolezni_by_soznanie}</font>
     """
-    create_text(elements, alignment=0, space_after=10, space_before=12, leading=18, text=bolezni)
+    create_text(elements, alignment=0, space_after=10, space_before=12, leading=40, text=bolezni)
 
-    create_orange_rect(elements, doc.width, 30, f"""
-    <font name="TimesNewRomanItalicBold" size="16" color="white">Ваше Число действия (жизненный путь) - {chislo_deystviya}</font><br/>
+    create_orange_rect(elements, doc.width, 80, f"""
+    <font name="OpenSansBold" size="{26}" color="{Color.TableText}">Ваше Число действия (жизненный путь) - {chislo_deystviya}</font><br/>
     """)
 
-    opisanie_chislo_deistviya_text = f"""<font name="TimesNewRomanItalicBold" size="12" color={Color.Blue}>Краткое описание по Числу действия: </font>"""
+    opisanie_chislo_deistviya_text = f"""<font name="OpenSansBold" size="{MAIN_SIZE}" color={Color.Highlighted}>Краткое описание по Числу действия: </font>"""
     opisanie_chislo_deistviya = f"""{opisanie_chislo_deistviya_text}<br/>
-        <font name="TimesNewRoman" size="12">{opisanie_by_chislo_deistviya}</font>
+        <font name="OpenSans" size="{MAIN_SIZE}" color={Color.Main}>{opisanie_by_chislo_deistviya}</font>
     """
 
-    create_text(elements, alignment=0, space_after=10, space_before=12, leading=18, text=opisanie_chislo_deistviya)
+    create_text(elements, alignment=0, space_after=10, space_before=12, leading=40, text=opisanie_chislo_deistviya)
 
     # Формируем содержимое ячеек
     positive_text: str = format_list(positive_aspect_by_deistvie)
@@ -299,47 +374,49 @@ def create_pdf(name: str, date_of_birth_str: str) -> tuple[bytes, str]:
 
     # Создаем данные для таблицы
     data = [
-        [Paragraph(f'<font name="TimesNewRomanItalicBold" size="12" color={Color.Blue} >В позитивном аспекте (+)</font>', ParagraphStyle(name='', alignment=1)),
-         Paragraph(f'<font name="TimesNewRomanItalicBold" size="12" color={Color.Blue} >В негативном аспекте (-)</font>', ParagraphStyle(name='', alignment=1))],
-        [Paragraph(positive_text, styles['TimesNewRomanNormal']),
-         Paragraph(negative_text, styles['TimesNewRomanNormal'])]
+        [Paragraph(f'<font name="OpenSansBold" size="{MAIN_SIZE}" color={Color.TableText} >В позитивном аспекте (+)</font>', ParagraphStyle(name='', alignment=1)),
+         Paragraph(f'<font name="OpenSansBold" size="{MAIN_SIZE}" color={Color.TableText} >В негативном аспекте (-)</font>', ParagraphStyle(name='', alignment=1))],
+        [Paragraph(positive_text, styles['OpenSansNormal']),
+         Paragraph(negative_text, styles['OpenSansNormal'])]
     ]
     create_2x2_table(elements, doc.width, data)
 
-    create_text(elements, alignment=0, space_before=10, space_after=20, leading=20,
-                text=f"""<font name="TimesNewRomanItalicBold" size="12" color={Color.Blue}> При выполнении Задачи по трансформации сознания, Ваше Число действия (жизненного пути) изменится с {chislo_deystviya} на {new_chislo_deystviya}. При этом у Вас откроются неограниченные возможности.</font>""")
+    create_text(elements, alignment=0, space_before=10, space_after=20, leading=30,
+                text=f"""<font name="OpenSans" size="{MAIN_SIZE}" color={Color.Main}> При выполнении Задачи по трансформации сознания, Ваше Число действия (жизненного пути) изменится с {chislo_deystviya} на {new_chislo_deystviya}. При этом у Вас откроются неограниченные возможности.</font>""")
 
     styles.add(ParagraphStyle(
         name='TableHeader',
-        fontName='TimesNewRomanItalicBold',
-        fontSize=12,
+        fontName='OpenSansBold',
+        fontSize=MAIN_SIZE,
         alignment=TA_CENTER,
-        textColor=Color.Blue,
-        leading=14))
+        textColor=Color.TableText,
+        leading=30))
 
     styles.add(ParagraphStyle(
         name='TableContent',
-        fontName='TimesNewRoman',
-        fontSize=12,
+        fontName='OpenSans',
+        fontSize=MAIN_SIZE,
         leftIndent=10,
         alignment=TA_LEFT,
-        leading=14))
+        leading=30))
     styles.add(ParagraphStyle(
         name='TableContentBold',
-        fontName='TimesNewRomanItalicBold',
-        fontSize=12,
+        fontName='OpenSansBold',
+        fontSize=MAIN_SIZE,
         alignment=TA_LEFT,
-        textColor=Color.Blue,
-        leading=18,
-        leftIndent=20))
+        textColor=Color.Highlighted,
+        leading=40,
+        leftIndent=20,
+        spaceBefore=20))
     styles.add(ParagraphStyle(
         name='TableContentSub',
-        fontName='TimesNewRoman',
-        fontSize=12,
+        fontName='OpenSans',
+        fontSize=MAIN_SIZE,
         alignment=TA_LEFT,
-        leading=17,
+        leading=30,
         leftIndent=30,  # Отступ слева для подпунктов
-        spaceBefore=12  # Отступ сверху для подпунктов
+        spaceBefore=12,  # Отступ сверху для подпунктов
+        textColor=Color.Main
     ))
     # Обновленные стили для подпунктов с отступом сверху
 
@@ -365,11 +442,11 @@ def create_pdf(name: str, date_of_birth_str: str) -> tuple[bytes, str]:
         ]
     ]
 
-    table = Table(data, colWidths=[doc.width / 2] * 2, rowHeights=[40, None])
+    table = Table(data, colWidths=[doc.width / 2] * 2, rowHeights=[70, None])
     table.setStyle(TableStyle([
-        ('GRID', (0, 0), (-1, -1), 1, colors.black),  # Границы ячеек
-        ('BOX', (0, 0), (-1, -1), 1, colors.black),  # Внешняя рамка
-        ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.black),  # Внутренние линии
+        ('BACKGROUND', (0, 0), (-1, 0), Color.TableBackground),
+        ('GRID', (0, 0), (-1, -1), 1, Color.Highlighted),
+        ('BOX', (0, 0), (-1, -1), 1, Color.TableBackground),  # Внешняя рамка
         ('LEFTPADDING', (0, 0), (-1, -1), 5),
         ('RIGHTPADDING', (0, 0), (-1, -1), 5),
         ('TOPPADDING', (0, 0), (-1, -1), 5),
@@ -379,67 +456,72 @@ def create_pdf(name: str, date_of_birth_str: str) -> tuple[bytes, str]:
     ]))
 
     elements.append(table)
-    elements.append(Spacer(1, 10))
+    elements.append(Spacer(1, 20))
 
-    create_orange_rect(elements, doc.width, 50, f"""
-    <font name="TimesNewRomanItalicBold" size="16" color="white">Ваш вектор жизни – {vector_zhizni}</font><br/>
-    <font name="TimesNewRomanItalic" size="14" color="white">(Сфера - предназначения)</font>
+    create_orange_rect(elements, doc.width, 120, f"""
+    <font name="OpenSansBold" size="{BIG_SIZE}" color="white">Ваш вектор жизни – {vector_zhizni}</font><br/>
+    <font name="OpenSans" size="{HIGHLIGHTED_SIZE}" color="white">(Сфера - предназначения)</font>
     """)
 
-    create_text(elements, alignment=0, space_before=15, leading=17, text="""<font name="TimesNewRomanItalic" size="12">(Вектор жизни - показатель направленности в жизни, т.е. совокупность энергий, через
+    create_text(elements, alignment=0, space_before=15, leading=38, text=f"""<font name="OpenSans" size="{MAIN_SIZE}">(Вектор жизни - показатель направленности в жизни, т.е. совокупность энергий, через
     которые человек приходит либо к стагнации и разрушению, либо к самореализации в жизни.
     Самореализация — процесс, который заключается в реализации человеком своих
     способностей, потенциалов и талантов, в каком-либо виде деятельности)</font>""")
+    create_text(elements, alignment=0, space_before=10, space_after=20, leading=28, text=f"""
+        <font name="OpenSansBold" size="{MAIN_SIZE}" color="{Color.Highlighted}">
+        Ваш вектор жизни направлен на
+        </font>
+        <font name="OpenSans" size="{MAIN_SIZE}" color="{Color.Main}">
+        {napravlenie_by_vector_zhizni}
+        </font>""")
 
-    create_text(elements, alignment=0, space_before=10, space_after=15,
-                text=f"""<font name="TimesNewRomanItalicBold" size="12" color={Color.Blue}>Ваш вектор жизни направлен на {napravlenie_by_vector_zhizni}</font>""")
 
     # Создание таблицы для прямоугольника
     data = [
-        [Paragraph(f'<font name="TimesNewRomanItalicBold" size="12" color={Color.Blue}>Стагнация (отсутствие развития)</font>', ParagraphStyle(name='', alignment=1)),
-         Paragraph(f'<font name="TimesNewRomanItalicBold" size="12" color={Color.Blue}>Реализация (развитие потенциала)</font>', ParagraphStyle(name='', alignment=1))],
-        [Paragraph(f"""<font name="TimesNewRoman" size="12">{stagnatsia_by_vector_zhizni}</font>""", ParagraphStyle(name='', leading=16, leftIndent=20)),
-         Paragraph(f"""<font name="TimesNewRoman" size="12">{realizatsia_by_vector_zhizni}</font>""", ParagraphStyle(name='', leading=16, leftIndent=20))]
+        [Paragraph(f'<font name="OpenSansBold" size="{MAIN_SIZE}" color={Color.TableText}>Стагнация (отсутствие развития)</font>', ParagraphStyle(name='', alignment=1, leading=26)),
+         Paragraph(f'<font name="OpenSansBold" size="{MAIN_SIZE}" color={Color.TableText}>Реализация (развитие потенциала)</font>', ParagraphStyle(name='', alignment=1, leading=26))],
+        [Paragraph(f"""<font name="OpenSans" size="{MAIN_SIZE}" color={Color.Main}>{stagnatsia_by_vector_zhizni}</font>""", ParagraphStyle(name='', leading=36, leftIndent=20)),
+         Paragraph(f"""<font name="OpenSans" size="{MAIN_SIZE}" color={Color.Main}>{realizatsia_by_vector_zhizni}</font>""", ParagraphStyle(name='', leading=36, leftIndent=20))]
     ]
 
-    table = Table(data, colWidths=[doc.width / 2] * 2, rowHeights=[50, None])  # Ширина прямоугольника равна ширине страницы
+    table = Table(data, colWidths=[doc.width / 2] * 2, rowHeights=[80, None])  # Ширина прямоугольника равна ширине страницы
     table.setStyle(TableStyle([
-        ('GRID', (0, 0), (-1, -1), 1, colors.black),  # Черная обводка
+        ('BACKGROUND', (0, 0), (7, 0), Color.TableBackground),
+        ('GRID', (0, 0), (-1, -1), 1, Color.TableBackground),  # Черная обводка
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),  # Вертикальное центрирование текста
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),  # Горизонтальное центрирование текста
         ('TOPPADDING', (1, 0), (1, 1), 15),  # Отступ сверху
         ('BOTTOMPADDING', (1, 0), (1, 1), 15),  # Отступ снизу
     ]))
     elements.append(table)
-    elements.append(Spacer(1, 10))
+    elements.append(Spacer(1, 25))
 
-    create_orange_rect(elements, doc.width, 50, f"""
-    <font name="TimesNewRomanItalicBold" size="16" color="white">Ваша Задача по трансформации сознания - {nomer_zadachi_ot_tvortsa}</font><br/>
-    <font name="TimesNewRomanItalic" size="14" color="white">(Задача от Творца)</font>
+    create_orange_rect(elements, doc.width, 110, f"""
+    <font name="OpenSansBold" size="{BIG_SIZE}" color="{Color.TableText}">Ваша Задача по трансформации сознания - {nomer_zadachi_ot_tvortsa}</font><br/>
+    <font name="OpenSans" size="{HIGHLIGHTED_SIZE}" color="{Color.TableText}">(Задача от Творца)</font>
     """)
 
     create_zadacha_ot_tvortsa_func(elements)
 
-    create_text(elements, alignment=1, space_before=10, space_after=10, leading=17, text=f"""<font name="TimesNewRomanItalicBold" size="12"
-    color={Color.Blue}>Формула задачи (стратегия счастливой жизни)
-    </font>""")
+    create_text(elements, alignment=1, space_before=20, space_after=20, leading=28, text=f"""<font name="OpenSansBold" size="{28}"
+    color="{Color.Main}">Формула задачи (стратегия счастливой жизни)</font>""")
 
     draw_formula_zadachi_tvortsa_func(elements)
 
-    create_text(elements, alignment=0, space_before=10, space_after=10, leading=23, text=f"""
-    <font name="TimesNewRomanItalicBold" size="12" color={Color.Blue}>Аффирмация</font>
-    <font name="TimesNewRomanItalic" size="12">(утверждение, помогающее создать положительный психологический
+    create_text(elements, alignment=0, space_before=30, space_after=40, leading=32, text=f"""
+    <font name="OpenSansBold" size="{MAIN_SIZE}" color={Color.Highlighted}>Аффирмация</font>
+    <font name="OpenSans" size="{MAIN_SIZE}"> (утверждение, помогающее создать положительный психологический
     настрой. Многократное повторение воздействует на подсознание и помогает создать новую
-    модель мышления)</font>
-    <font name="TimesNewRomanItalicBold" size="12" color={Color.Blue}>- {affirmatsia}</font>
+    модель мышления) </font>
+    <font name="OpenSansBold" size="{MAIN_SIZE}" color={Color.Highlighted}>- {affirmatsia}</font>
     """)
 
-    create_orange_rect(elements, doc.width, 50, """
-    <font name="TimesNewRomanItalicBold" size="16" color="white">Ваша матрица врождённых энергий (матрица компетенций)</font><br/>
-    <font name="TimesNewRomanItalic" size="14" color="white">(врожденные качества и компетенции личности)</font>
+    create_orange_rect(elements, doc.width, 120, f"""
+    <font name="OpenSansBold" size="{BIG_SIZE}" color="{Color.TableText}">Ваша матрица врождённых энергий</font><br/>
+    <font name="OpenSans" size="{HIGHLIGHTED_SIZE}" color="{Color.TableText}">(врожденные качества и компетенции личности)</font>
     """)
 
-    elements.append(Spacer(1, 20))
+    elements.append(Spacer(1, 30))
 
     data: list = [
         ['3' * energy_matrix[2], '6' * energy_matrix[5], '9' * energy_matrix[8]],
@@ -448,25 +530,25 @@ def create_pdf(name: str, date_of_birth_str: str) -> tuple[bytes, str]:
     ]
     for e, i in enumerate(data):
         for e2, j in enumerate(i):
-            data[e][e2] = Paragraph(f'<font name="TimesNewRoman" size="16">{j}</font>', styles['TimesNewRomanCenter'])
+            data[e][e2] = Paragraph(f'<font name="OpenSans" size="{BIG_SIZE}" color="{Color.Highlighted}">{j}</font>', styles['OpenSansCenter'])
 
-    table = Table(data, colWidths=50, rowHeights=50)
+    table = Table(data, colWidths=100, rowHeights=100)
     table.setStyle(TableStyle([
-        ('GRID', (0, 0), (-1, -1), 1, colors.black),  # Черная обводка
+        ('GRID', (0, 0), (-1, -1), 1, Color.Highlighted),  # Черная обводка
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),  # Вертикальное центрирование текста
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),  # Горизонтальное центрирование текста
     ]))
     elements.append(table)
 
-    create_text(elements, alignment=0, space_before=15, space_after=15, text=f"""<font name="TimesNewRomanItalicBold" size="12" color={Color.Blue}>В Вашей матрице заложены следующие энергии:</font>""")
+    create_text(elements, alignment=0, space_before=20, space_after=20, leading=28, text=f"""<font name="OpenSansBold" size="{MAIN_SIZE}" color={Color.Highlighted}>В Вашей матрице заложены следующие энергии:</font>""")
     create_matrix_energy(elements, est_energy)
 
-    create_text(elements, alignment=0, space_after=15, space_before=20,
-                text=f"""<font name="TimesNewRomanItalicBold" size="12" color={Color.Blue}>В Вашей матрице отсутствуют следующие энергии:</font>""")
+    create_text(elements, alignment=0, space_after=20, space_before=20, leading=28,
+                text=f"""<font name="OpenSansBold" size="{MAIN_SIZE}" color={Color.Highlighted}>В Вашей матрице отсутствуют следующие энергии:</font>""")
     create_matrix_energy(elements, net_energy)
 
-    create_text(elements, alignment=0, space_after=15, space_before=20,
-                text=f"""<font name="TimesNewRomanItalicBold" size="12" color={Color.Blue}>Рекомендации по наработке отсутствующих энергий:</font>""")
+    create_text(elements, alignment=0, space_after=20, space_before=20, leading=28,
+                text=f"""<font name="OpenSansBold" size="{MAIN_SIZE}" color={Color.Highlighted}>Рекомендации по наработке отсутствующих энергий:</font>""")
 
     create_recomendations(elements, [
         "Стремитесь к выполнению Задачи по трансформации сознания! (Задача от Творца)",
@@ -485,42 +567,43 @@ def create_pdf(name: str, date_of_birth_str: str) -> tuple[bytes, str]:
 
     elements.append(Spacer(1, 10))
 
-    create_orange_rect(elements, doc.width, 30, f"""
-    <font name="TimesNewRomanItalicBold" size="16" color="white">Ваш личный год 2026 г. - {lichniy_god}</font><br/>
+    create_orange_rect(elements, doc.width, 100, f"""
+    <font name="OpenSansBold" size="{BIG_SIZE}" color="{Color.TableText}">Ваш личный год {datetime.now().year} г. - {lichniy_god}</font><br/>
     """)
 
     text = f"""
-    <font name="TimesNewRomanItalicBold" size="12" color={Color.Blue}>{lichniy_god_description}</font><br/><br/>
+    <font name="OpenSansBold" size="{MAIN_SIZE}" color="{Color.Highlighted}">{lichniy_god_description}</font><br/><br/>
     """
     if lichniy_god_sub_description is not None:
         text += f"""
-            <font name="TimesNewRomanItalic" size="12" color={Color.Brown}>{lichniy_god_sub_description}</font>
+            <font name="OpenSans" size="{MAIN_SIZE}" color="{Color.Main}">{lichniy_god_sub_description}</font>
         """
 
-    create_text(elements, alignment=0, space_after=15, space_before=15, leading=15, text=text)
+    create_text(elements, alignment=0, space_after=20, space_before=15, leading=15, text=text)
 
     # Формируем содержимое ячеек
-    positive_text = f"""<font name="TimesNewRoman" size="12">{positive_aspect_by_lichny_god}</font>"""
-    negative_text = f"""<font name="TimesNewRoman" size="12">{negative_aspect_by_lichny_god}</font>"""
+    positive_text = f"""<font name="OpenSans" size="{MAIN_SIZE}">{positive_aspect_by_lichny_god}</font>"""
+    negative_text = f"""<font name="OpenSans" size="{MAIN_SIZE}">{negative_aspect_by_lichny_god}</font>"""
 
     # Создаем данные для таблицы
     data = [
-        [Paragraph(f'<font name="TimesNewRomanItalicBold" size="12" color={Color.Blue}>В позитивном аспекте (+)</font>', ParagraphStyle(name='', alignment=1)),
-         Paragraph(f'<font name="TimesNewRomanItalicBold" size="12" color={Color.Blue}>В негативном аспекте (-)</font>', ParagraphStyle(name='', alignment=1))],
-        [Paragraph(positive_text, styles['TimesNewRomanNormal']),
-         Paragraph(negative_text, styles['TimesNewRomanNormal'])]
+        [Paragraph(f'<font name="OpenSansBold" size="{MAIN_SIZE}" color="{Color.TableText}">В позитивном аспекте (+)</font>', ParagraphStyle(name='', alignment=1)),
+         Paragraph(f'<font name="OpenSansBold" size="{MAIN_SIZE}" color="{Color.TableText}">В негативном аспекте (-)</font>', ParagraphStyle(name='', alignment=1))],
+        [Paragraph(positive_text, styles['OpenSansNormal']),
+         Paragraph(negative_text, styles['OpenSansNormal'])]
     ]
     create_2x2_table(elements, doc.width, data)
 
-    text = f"""<font name="TimesNewRomanItalicBold" size="12" color={Color.Blue}>Рекомендации на этот год:</font>
-    <font name="TimesNewRoman" size="12" color={Color.Brown}>{recomendations_na_god}</font>"""
-    create_text(elements, alignment=0, space_before=15, space_after=15, leading=18, text=text)
+    text = f"""<font name="OpenSansBold" size="{MAIN_SIZE}" color={Color.Highlighted}>Рекомендации на этот год:</font>
+    <font name="OpenSans" size="{MAIN_SIZE}" color={Color.Main}>{recomendations_na_god}</font>"""
+    create_text(elements, alignment=0, space_before=15, space_after=15, leading=40, text=text)
 
-    text = f"""<font name="TimesNewRomanBold" size="12" color={Color.Red}>{name}, я от всей души желаю Вам успеха!</font>"""
-    create_text(elements, alignment=1, space_after=10, text=text)
+    text = f"""<font name="OpenSansBold" size="{BIG_SIZE}" color={Color.Highlighted}>{name}, я от всей души желаю Вам успеха!</font>"""
+    create_text(elements, alignment=1, space_after=10, space_before=100, leading=34, text=text)
 
     # Создание PDF
-    doc.build(elements)
+    doc.build(elements, onFirstPage=header_canvas, onLaterPages=header_canvas)
+
     pdf_buffer.seek(0)
     file_path: str = f'{name}_{date_of_birth_str}.pdf'
 
@@ -528,3 +611,9 @@ def create_pdf(name: str, date_of_birth_str: str) -> tuple[bytes, str]:
 
 
 load_font()
+
+if __name__ == '__main__':
+    pdf = create_pdf('anna', '11.02.2001')
+
+    with open('ex.pdf', 'wb') as f:
+        f.write(pdf[0])

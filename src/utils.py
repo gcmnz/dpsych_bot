@@ -4,6 +4,7 @@ from reportlab.lib.styles import ParagraphStyle
 from .color import Color
 from .getters_text import get_narabotat_competencie_array_by_competencie_num
 
+MAIN_SIZE = 22
 
 week_days: dict[str: str] = {
     'Monday': 'Понедельник',
@@ -52,12 +53,12 @@ arrow_size: int = 30  # Size of the right arrow
 def format_list(items: list[str]) -> str:
     formatted_items: list[str] = []
     for item in items:
-        formatted_items.append(f'<font name="TimesNewRoman" size="15"> • </font>'
-                               f'<font name="TimesNewRoman" size="12">{item}</font>')
+        formatted_items.append(f'<font name="OpenSans" size="22" color={Color.Main}> • </font>'
+                               f'<font name="OpenSans" size="22" color={Color.Main}>{item}</font>')
     return "<br/><br/>".join(formatted_items)
 
 
-def create_text(elements: list[Flowable], text: str, alignment, space_after: int = 0, space_before: int = 0, leading: int = 12, left_indent: int = 0) -> None:
+def create_text(elements: list[Flowable], text: str, alignment, space_after: int = 0, space_before: int = 0, leading: int = 12, left_indent: int = 0, right_indent: int = 0, wordWrap=None) -> None:
     elements.append(Paragraph(text, style=ParagraphStyle(name='', alignment=alignment, spaceAfter=space_after, leading=leading, spaceBefore=space_before, leftIndent=left_indent)))
 
 
@@ -65,15 +66,14 @@ def create_orange_rect(elements, w, h, text):
     style = ParagraphStyle(
         name='',
         alignment=1,
-        leading=18  # Межстрочный интервал
+        leading=32  # Межстрочный интервал
     )
 
     # Создание таблицы для прямоугольника
     data = [[Paragraph(text, style)]]
     table = Table(data, colWidths=[w], rowHeights=h)  # Ширина прямоугольника равна ширине страницы
     table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, -1), Color.Orange),  # Оранжевый цвет фона
-        ('GRID', (0, 0), (-1, -1), 1, Color.Black),  # Черная обводка
+        ('BACKGROUND', (0, 0), (-1, -1), Color.TableBackground),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),  # Вертикальное центрирование текста
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),  # Горизонтальное центрирование текста
     ]))
@@ -84,13 +84,14 @@ def create_orange_rect(elements, w, h, text):
 def create_2x2_table(elements, w, data):
     table = Table(data, colWidths=[w / 2] * 2, rowHeights=None)  # Ширина ячеек равна половине ширины страницы
     table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), Color.TableBackground),
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ('GRID', (0, 0), (-1, -1), 1, Color.Black),
+        ('GRID', (0, 0), (-1, -1), 1, Color.Highlighted),
         ('LEFTPADDING', (0, 0), (-1, -1), 25),
         ('RIGHTPADDING', (0, 0), (-1, -1), 25),
         ('TOPPADDING', (0, 0), (-1, -1), 20),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 20)
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 40)
     ]))
 
     elements.append(table)
@@ -99,36 +100,29 @@ def create_2x2_table(elements, w, data):
 def create_matrix_energy(elements, array):
     for i in array:
         t = f"""
-                <font name="TimesNewRoman" size="16"> • </font>
-                <font name="TimesNewRoman" size="12">
-                {i}</font>
+                <font name="OpenSans" size="{MAIN_SIZE}" color="{Color.Main}"> • {i}</font>
                 """
-        create_text(elements, left_indent=20, space_after=5, space_before=5, alignment=0, text=t)
+        create_text(elements, left_indent=20, space_after=5, space_before=5, alignment=0, leading=32, text=t)
 
 
 def create_recomendations(elements, array):
     for i in array:
         t = f"""
-                <font name="TimesNewRoman" size="16" color={Color.Orange}> • </font>
-                <font name="TimesNewRomanBold" size="12" color={Color.Orange}>
-                {i}</font>
+                <font name="OpenSans" size="{MAIN_SIZE}" color="{Color.Main}"> • {i}</font>
                 """
-        create_text(elements, left_indent=20, space_after=10, space_before=10, alignment=0, text=t)
+        create_text(elements, left_indent=20, space_after=10, space_before=10, alignment=0, leading=32, text=t)
 
 
 def create_build_competencies(elements, competencie_num: int):
     competencie_array: list[str] = get_narabotat_competencie_array_by_competencie_num(competencie_num)
 
-    t = f"""<font name="TimesNewRomanItalicBold" size="12" color={Color.Blue}>Как наработать качества/компетенции «{competencie_num}»:</font>"""
-    create_text(elements, left_indent=10, space_before=15, space_after=15, alignment=0, text=t)
+    t = f"""<font name="OpenSansBold" size="{MAIN_SIZE}" color="{Color.Highlighted}">Как наработать качества/компетенции «{competencie_num}»:</font>"""
+    create_text(elements, left_indent=10, space_before=15, space_after=15, alignment=0, leading=28, text=t)
 
     for competencie in competencie_array:
         t = f"""
-             <font name="TimesNewRoman" size="16"> • </font>
-             <font name="TimesNewRoman" size="12">
-             {competencie}</font>
-                 """
-        create_text(elements, left_indent=20, space_after=5, space_before=5, alignment=0, leading=15, text=t)
+             <font name="OpenSans" size="{MAIN_SIZE}" color="{Color.Main}"> • {competencie}</font>"""
+        create_text(elements, left_indent=20, space_after=5, space_before=5, alignment=0, leading=28, text=t)
 
     elements.append(Spacer(1, 10))
 
@@ -177,7 +171,7 @@ def zadacha_by_1(elements):
         собственную жизнь на себя. Достичь финансового благополучия и передавать полученный опыт
         другим людям»
     """
-    create_text(elements, alignment=0, space_before=15, space_after=15, leading=17, text=f"""<font name="TimesNewRomanItalicBold" size="12" color={Color.Orange}>{text}</font>""")
+    create_text(elements, alignment=0, space_before=15, space_after=15, leading=28, text=f"""<font name="OpenSansBold" size="{MAIN_SIZE}" color={Color.Highlighted}>{text}</font>""")
 
 
 def zadacha_by_2(elements):
@@ -185,19 +179,19 @@ def zadacha_by_2(elements):
         «Научиться слушать и слышать людей любого уровня. Меньше анализировать, а больше действовать.
         Стать наставником в своей сфере деятельности»
     """
-    create_text(elements, alignment=0, space_before=15, space_after=15, leading=17, text=f"""<font name="TimesNewRomanItalicBold" size="12" color={Color.Orange}>{text}</font>""")
+    create_text(elements, alignment=0, space_before=15, space_after=15, leading=28, text=f"""<font name="OpenSansBold" size="{MAIN_SIZE}" color={Color.Highlighted}>{text}</font>""")
 
     text_list = ["стать номером 2 в отношениях", "научиться понимать другого человека (разговаривать с ним с позиции «снизу», задавать вопросы, уйти от монолога)",
                  "давать людям только те знания, которые им нужны", "прийти к пониманию (без понимания сложно добиться финансового успеха)."]
 
     for t in text_list:
-        create_text(elements, alignment=0, space_before=5, space_after=5, left_indent=20, leading=15, text=f"""
-        <font name="TimesNewRoman" size="15"> • </font>
-        <font name="TimesNewRoman" size="12">{t}</font>
+        create_text(elements, alignment=0, space_before=5, space_after=5, left_indent=20, leading=28, text=f"""
+        <font name="OpenSans" size="15"> • </font>
+        <font name="OpenSans" size="{MAIN_SIZE}">{t}</font>
     """)
 
     text = "Только через понимание людей Вы сможете действовать и добиться материального успеха."
-    create_text(elements, alignment=0, space_before=15, space_after=15, leading=17, text=f"""<font name="TimesNewRoman" size="12">{text}</font>""")
+    create_text(elements, alignment=0, space_before=15, space_after=15, leading=28, text=f"""<font name="OpenSans" size="{MAIN_SIZE}">{text}</font>""")
 
 
 def zadacha_by_3(elements):
@@ -206,76 +200,76 @@ def zadacha_by_3(elements):
         через расчет и выстраивание правильных последовательных действий Вы достигнете финансового
         успеха»
     """
-    create_text(elements, alignment=0, space_before=15, space_after=15, leading=17, text=f"""<font name="TimesNewRomanItalicBold" size="12" color={Color.Orange}>{text}</font>""")
+    create_text(elements, alignment=0, space_before=15, space_after=15, leading=28, text=f"""<font name="OpenSansBold" size="{MAIN_SIZE}" color={Color.Highlighted}>{text}</font>""")
 
 
 def zadacha_by_4(elements):
     text = """«Определить цель, не тратить время и энергию на пустые разговоры, а начать действовать. В
 процессе действия появится вдохновение, которое приведет Вас к финансовому успеху»"""
-    create_text(elements, alignment=0, space_before=15, space_after=15, leading=17, text=f"""<font name="TimesNewRomanItalicBold" size="12" color={Color.Orange}>{text}</font>""")
+    create_text(elements, alignment=0, space_before=15, space_after=15, leading=28, text=f"""<font name="OpenSansBold" size="{MAIN_SIZE}" color={Color.Highlighted}>{text}</font>""")
 
     text = """Как только Вы начинаете действовать, а не думать и анализировать, к Вам приходит ощущение всесилия."""
-    create_text(elements, alignment=0, space_before=10, space_after=15, leading=17, text=f"""<font name="TimesNewRoman" size="12">{text}</font>""")
+    create_text(elements, alignment=0, space_before=10, space_after=15, leading=28, text=f"""<font name="OpenSans" size="{MAIN_SIZE}">{text}</font>""")
 
 
 def zadacha_by_5(elements):
     text = """«Развивать интеллект, развивать коммуникативные и ораторские навыки. Расширение интеллекта
 приведет Вас к гениальности, финансовому успеху и благополучию во всех сферах жизни»"""
-    create_text(elements, alignment=0, space_before=15, space_after=15, leading=17, text=f"""<font name="TimesNewRomanItalicBold" size="12" color={Color.Orange}>{text}</font>""")
+    create_text(elements, alignment=0, space_before=15, space_after=15, leading=28, text=f"""<font name="OpenSansBold" size="{MAIN_SIZE}" color={Color.Highlighted}>{text}</font>""")
 
 
 def zadacha_by_6(elements):
     text = """«Заниматься физической активностью и телесно-ориентированными практиками: йогой, тантрой,
 медитацией. Вам необходимо высвободить сексуальную энергию. Голова станет ясной и появится
 желание трудиться, а труд приведет к финансовому успеху»"""
-    create_text(elements, alignment=0, space_before=15, space_after=15, leading=17, text=f"""<font name="TimesNewRomanItalicBold" size="12" color={Color.Orange}>{text}</font>""")
+    create_text(elements, alignment=0, space_before=15, space_after=15, leading=28, text=f"""<font name="OpenSansBold" size="{MAIN_SIZE}" color={Color.Highlighted}>{text}</font>""")
 
-    text = """Как только Вы поднимете энергию в голову, у Вас появятся творческие идеи и неуёмное желание их
+    text = """Как только Вы поднимете энергию в голову, у Вас появятся творческие идеи и неуёмное желание их
 претворять в жизнь (реальность)."""
-    create_text(elements, alignment=0, space_before=10, space_after=15, leading=17, text=f"""<font name="TimesNewRoman" size="12">{text}</font>""")
+    create_text(elements, alignment=0, space_before=10, space_after=15, leading=28, text=f"""<font name="OpenSans" size="{MAIN_SIZE}">{text}</font>""")
 
 
 def zadacha_by_7(elements):
     text = """«Научиться управлять материальным миром, а не разрешать ему управлять собой. Посвящать время
 собственному духовному развитию. Уйти от тотального контроля. Научиться доверять и
 сотрудничать с людьми»"""
-    create_text(elements, alignment=0, space_before=15, space_after=15, leading=17, text=f"""<font name="TimesNewRomanItalicBold" size="12" color={Color.Orange}>{text}</font>""")
+    create_text(elements, alignment=0, space_before=15, space_after=15, leading=28, text=f"""<font name="OpenSansBold" size="{MAIN_SIZE}" color={Color.Highlighted}>{text}</font>""")
 
     text = """Как только Вы начинаете разговаривать с людьми по душам и доверять им, у Вас сразу возникают
 дружественные отношения и желание помочь им."""
-    create_text(elements, alignment=0, space_before=10, space_after=15, leading=17, text=f"""<font name="TimesNewRoman" size="12">{text}</font>""")
+    create_text(elements, alignment=0, space_before=10, space_after=15, leading=28, text=f"""<font name="OpenSans" size="{MAIN_SIZE}">{text}</font>""")
 
 
 def zadacha_by_8(elements):
     text = """«Найти идею. Работать над ней индивидуально. Разработать стратегию и взять ответственность
 на себя»"""
-    create_text(elements, alignment=0, space_before=15, space_after=15, leading=17, text=f"""<font name="TimesNewRomanItalicBold" size="12" color={Color.Orange}>{text}</font>""")
+    create_text(elements, alignment=0, space_before=15, space_after=15, leading=28, text=f"""<font name="OpenSansBold" size="{MAIN_SIZE}" color={Color.Highlighted}>{text}</font>""")
 
     text = """Как только Вы начинаете трудиться на себя, то сразу чувствуете самодостаточность. У Вас появляются
 деньги и независимость, становитесь автономным."""
-    create_text(elements, alignment=0, space_before=10, space_after=15, leading=17, text=f"""<font name="TimesNewRoman" size="12">{text}</font>""")
+    create_text(elements, alignment=0, space_before=10, space_after=15, leading=28, text=f"""<font name="OpenSans" size="{MAIN_SIZE}">{text}</font>""")
 
 
 def zadacha_by_9(elements):
     text = """«Научиться светить, а не затмевать других людей, стать причиной их успеха. А также
 контролировать свой финансовый поток»"""
-    create_text(elements, alignment=0, space_before=15, space_after=15, leading=17, text=f"""<font name="TimesNewRomanItalicBold" size="12" color={Color.Orange}>{text}</font>""")
+    create_text(elements, alignment=0, space_before=15, space_after=15, leading=28, text=f"""<font name="OpenSansBold" size="{MAIN_SIZE}" color={Color.Highlighted}>{text}</font>""")
 
     text = """Как только проявите намерение привести другого человека к успеху – к Вам придут идеи, как это сделать.
 Необходимо создавать возможности для личностного, профессионального и духовного роста других людей."""
-    create_text(elements, alignment=0, space_before=10, space_after=15, leading=17, text=f"""<font name="TimesNewRoman" size="12">{text}</font>""")
+    create_text(elements, alignment=0, space_before=10, space_after=15, leading=28, text=f"""<font name="OpenSans" size="{MAIN_SIZE}">{text}</font>""")
 
 
 def draw_formula_tvortsa_by_1(elements):
     data = [
-        [RectangleWithText(width=140, height=height_, text=f"""• исполнительность<br/>
+        [RectangleWithText(width=200, height=height_, text=f"""• исполнительность<br/>
                                                               • желание понять другого человека или ситуацию"""),
          Cross(width=cross_size, height=cross_size),
-         RectangleWithText(width=150, height=height_, text=f"""• разработка стратегии<br/>
+         RectangleWithText(width=200, height=height_, text=f"""• разработка стратегии<br/>
                                                               • принятие решений<br/>
                                                               • ответственность на себя"""),
          EqualSign(width=equal_size, height=equal_size),
-         RectangleWithText(width=110, height=height_, text=f"""• расширение собственных возможностей<br/>
+         RectangleWithText(width=220, height=height_, text=f"""• расширение собственных возможностей<br/>
                                                               • богатство (власть, деньги)<br/>
                                                               • гармоничные отношения"""),
          ],
@@ -286,12 +280,12 @@ def draw_formula_tvortsa_by_1(elements):
 
 def draw_formula_tvortsa_by_2(elements):
     data = [
-        [RectangleWithText(width=140, height=height_, text=f"""• видение<br/>
+        [RectangleWithText(width=200, height=height_, text=f"""• видение<br/>
                                                     • целеустремлённость"""),
          Cross(width=cross_size, height=cross_size),
-         RectangleWithText(width=150, height=height_, text=f"""• действия через анализ"""),
+         RectangleWithText(width=180, height=height_, text=f"""• действия через анализ"""),
          EqualSign(width=equal_size, height=equal_size),
-         RectangleWithText(width=110, height=height_, text=f"достижение целей, деньги, изобилие и гармония в отношениях"),
+         RectangleWithText(width=200, height=height_, text=f"достижение целей, деньги, изобилие и гармония в отношениях"),
          ],
     ]
 
@@ -300,12 +294,12 @@ def draw_formula_tvortsa_by_2(elements):
 
 def draw_formula_tvortsa_by_3(elements):
     data = [
-        [RectangleWithText(width=140, height=height_, text=f"""• видение<br/>
+        [RectangleWithText(width=200, height=height_, text=f"""• видение<br/>
                                                     • целеустремлённость"""),
          Cross(width=cross_size, height=cross_size),
-         RectangleWithText(width=150, height=height_, text=f"""• действия через анализ"""),
+         RectangleWithText(width=190, height=height_, text=f"""• действия через анализ"""),
          EqualSign(width=equal_size, height=equal_size),
-         RectangleWithText(width=110, height=height_, text=f"достижение целей, деньги, изобилие и гармония в отношениях"),
+         RectangleWithText(width=200, height=height_, text=f"достижение целей, деньги, изобилие и гармония в отношениях"),
          ],
     ]
 
@@ -314,14 +308,14 @@ def draw_formula_tvortsa_by_3(elements):
 
 def draw_formula_tvortsa_by_4(elements):
     data = [
-        [RectangleWithText(width=100, height=height_, text=f"""• интеллект (логика)"""),
+        [RectangleWithText(width=140, height=height_, text=f"""• интеллект (логика)"""),
          Cross(width=cross_size, height=cross_size),
-         RectangleWithText(width=120, height=height_, text=f"""• цель<br/>
+         RectangleWithText(width=160, height=height_, text=f"""• цель<br/>
                                                               • действия"""),
          EqualSign(width=equal_size, height=equal_size),
-         RectangleWithText(width=80, height=height_, text=f"""вдохновление (созидание)"""),
+         RectangleWithText(width=140, height=height_, text=f"""вдохновление (созидание)"""),
          RightArrow(width=arrow_size, height=arrow_size),
-         RectangleWithText(width=70, height=height_, text=f"""в Вашу жизнь придут деньги и изобилие"""),
+         RectangleWithText(width=140, height=height_, text=f"""в Вашу жизнь придут деньги и изобилие"""),
          ],
     ]
 
@@ -330,14 +324,14 @@ def draw_formula_tvortsa_by_4(elements):
 
 def draw_formula_tvortsa_by_5(elements):
     data = [
-        [RectangleWithText(width=100, height=height_, text=f"""• мудрость (понимание жизни)<br/>
+        [RectangleWithText(width=140, height=height_, text=f"""• мудрость (понимание жизни)<br/>
                                                               • сексуальная энергия"""),
          Cross(width=cross_size, height=cross_size),
-         RectangleWithText(width=120, height=height_, text=f"""• глубокие знания"""),
+         RectangleWithText(width=140, height=height_, text=f"""• глубокие знания"""),
          EqualSign(width=equal_size, height=equal_size),
-         RectangleWithText(width=80, height=height_, text=f"""гениальность"""),
+         RectangleWithText(width=140, height=height_, text=f"""гениальность"""),
          RightArrow(width=arrow_size, height=arrow_size),
-         RectangleWithText(width=70, height=height_, text=f"""в Вашу жизнь придут деньги, изобилие и счастье в личной жизни"""),
+         RectangleWithText(width=140, height=height_, text=f"""в Вашу жизнь придут деньги, изобилие и счастье в личной жизни"""),
          ],
     ]
 
@@ -346,17 +340,17 @@ def draw_formula_tvortsa_by_5(elements):
 
 def draw_formula_tvortsa_by_6(elements):
     data = [
-        [RectangleWithText(width=100, height=height_, text=f"""• интуиция<br/>
+        [RectangleWithText(width=140, height=height_, text=f"""• интуиция<br/>
                                                               • харизма<br/>
                                                               • сексуальная энергия"""),
          Cross(width=cross_size, height=cross_size),
-         RectangleWithText(width=120, height=height_, text=f"""• йога<br/>
+         RectangleWithText(width=140, height=height_, text=f"""• йога<br/>
                                                               • тантра<br/>
                                                               • спорт (энергия поднимается в голову)"""),
          EqualSign(width=equal_size, height=equal_size),
-         RectangleWithText(width=80, height=height_, text=f"""ясность в голове и желание трудиться"""),
+         RectangleWithText(width=140, height=height_, text=f"""ясность в голове и желание трудиться"""),
          RightArrow(width=arrow_size, height=arrow_size),
-         RectangleWithText(width=70, height=height_, text=f"""в Вашу жизнь придут деньги, изобилие и счастье в личной жизни"""),
+         RectangleWithText(width=140, height=height_, text=f"""в Вашу жизнь придут деньги, изобилие и счастье в личной жизни"""),
          ],
     ]
 
@@ -365,15 +359,15 @@ def draw_formula_tvortsa_by_6(elements):
 
 def draw_formula_tvortsa_by_7(elements):
     data = [
-        [RectangleWithText(width=100, height=height_, text=f"""• труд<br/>
+        [RectangleWithText(width=140, height=height_, text=f"""• труд<br/>
                                                               • мудрость"""),
          Cross(width=cross_size, height=cross_size),
-         RectangleWithText(width=120, height=height_, text=f"""• отказ от контроля<br/>
+         RectangleWithText(width=150, height=height_, text=f"""• отказ от контроля<br/>
                                                               • душевность и доверие к людям"""),
          EqualSign(width=equal_size, height=equal_size),
-         RectangleWithText(width=80, height=height_, text=f"""внутренний покой и свобода сознания"""),
+         RectangleWithText(width=140, height=height_, text=f"""внутренний покой и свобода сознания"""),
          RightArrow(width=arrow_size, height=arrow_size),
-         RectangleWithText(width=70, height=height_, text=f"""в Вашу жизнь придут деньги, изобилие и счастье в личной жизни"""),
+         RectangleWithText(width=150, height=height_, text=f"""в Вашу жизнь придут деньги, изобилие и счастье в личной жизни"""),
          ],
     ]
 
@@ -382,17 +376,17 @@ def draw_formula_tvortsa_by_7(elements):
 
 def draw_formula_tvortsa_by_8(elements):
     data = [
-        [RectangleWithText(width=100, height=height_, text=f"""• стремление к победе<br/>
+        [RectangleWithText(width=180, height=height_, text=f"""• стремление к победе<br/>
                                                               • динамика<br/>
                                                               • действия"""),
          Cross(width=cross_size, height=cross_size),
-         RectangleWithText(width=120, height=height_, text=f"""• индивидуальность<br/>
+         RectangleWithText(width=180, height=height_, text=f"""• индивидуальность<br/>
                                                               • автономность<br/>
                                                               • ответственность"""),
          EqualSign(width=equal_size, height=equal_size),
-         RectangleWithText(width=80, height=height_, text=f"""стратегия достижения целей"""),
+         RectangleWithText(width=120, height=height_, text=f"""стратегия достижения целей"""),
          RightArrow(width=arrow_size, height=arrow_size),
-         RectangleWithText(width=70, height=height_, text=f"""в Вашу жизнь придут деньги, изобилие и счастье в личной жизни"""),
+         RectangleWithText(width=120, height=height_, text=f"""в Вашу жизнь придут деньги, изобилие и счастье в личной жизни"""),
          ],
     ]
 
@@ -401,14 +395,14 @@ def draw_formula_tvortsa_by_8(elements):
 
 def draw_formula_tvortsa_by_9(elements):
     data = [
-        [RectangleWithText(width=140, height=height_, text=f"""• лидерство (руководство)<br/>
+        [RectangleWithText(width=200, height=height_, text=f"""• лидерство (руководство)<br/>
                                                     • мотиватор (вдохновитель)<br/>
                                                     • стратегическое мышление<br/>"""),
          Cross(width=cross_size, height=cross_size),
-         RectangleWithText(width=150, height=height_, text=f"""• выстраивание равноправных партнёрских отношений с людьми<br/>
+         RectangleWithText(width=200, height=height_, text=f"""• выстраивание равноправных партнёрских отношений с людьми<br/>
                                                                • контроль финансовых потоков"""),
          EqualSign(width=equal_size, height=equal_size),
-         RectangleWithText(width=110, height=height_, text=f"в Вашу жизнь придут деньги, изобилие и гармоничные отношения"),
+         RectangleWithText(width=160, height=height_, text=f"в Вашу жизнь придут деньги, изобилие и гармоничные отношения"),
          ],
     ]
 
@@ -421,16 +415,17 @@ class RectangleWithText(Flowable):
         self.width = width
         self.height = height
         self.style = ParagraphStyle(
-            name='TimesNewRomanCenter',
-            fontName='TimesNewRoman',
-            fontSize=12,
+            name='OpenSansCenter',
+            fontName='OpenSans',
+            fontSize=16,
             alignment=1,
-            leading=18  # Межстрочный интервал
+            leading=18,  # Межстрочный интервал
+            textColor=Color.Main
         )
         self.text = text
 
     def draw(self):
-        self.canv.setStrokeColor(Color.Blue)
+        self.canv.setStrokeColor(Color.Highlighted)
         self.canv.setFillColor(Color.White)
         self.canv.rect(0, 0, self.width, self.height, stroke=1, fill=1)
         self.canv.setFillColor(Color.Black)
