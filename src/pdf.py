@@ -191,22 +191,6 @@ def create_pdf(name: str, date_of_birth_str: str) -> tuple[bytes, str]:
 
     # Стили текста
     styles = getSampleStyleSheet()
-
-    doc = SimpleDocTemplate(pdf_buffer, pagesize=(PAGE_W, PAGE_H), leftMargin=80, rightMargin=80, topMargin=130, bottomMargin=20)
-    header_height = get_header_height(doc)
-    doc.topMargin = header_height + 120  # + небольшой дополнительный отступ
-    frame = Frame(
-        doc.leftMargin,
-        doc.bottomMargin,
-        doc.width,
-        doc.height,  # Вычитаем пространство шапки
-
-        id='normal'
-    )
-    # PageTemplate с нашей функцией header
-    template = PageTemplate(id='with_header', frames=frame, onPage=header_canvas)
-    doc.addPageTemplates([template])
-
     styles.add(ParagraphStyle(
         name='OpenSansCenter',
         fontName='OpenSans',
@@ -226,12 +210,29 @@ def create_pdf(name: str, date_of_birth_str: str) -> tuple[bytes, str]:
         fontName='OpenSans',
         alignment=1,
         leading=20,
-        splitLongWords=0,   # ← ВАЖНО
-        wordWrap='CJK'      # помогает корректнее переносить
+        splitLongWords=0,  # ← ВАЖНО
+        wordWrap='CJK'  # помогает корректнее переносить
     ))
 
-    create_text(elements, alignment=2, space_after=10, space_before=150,
-                text=f'<font name="OpenSansItalic" size="12" color={Color.Main}>Дата составления документа {datetime.now().strftime('%d.%m.%Y')}</font>'
+    doc = SimpleDocTemplate(pdf_buffer, pagesize=(PAGE_W, PAGE_H), leftMargin=80, rightMargin=80, topMargin=130, bottomMargin=20)
+    header_height = get_header_height(doc)
+    doc.topMargin = header_height + 120  # + небольшой дополнительный отступ
+    frame = Frame(
+        doc.leftMargin,
+        doc.bottomMargin,
+        doc.width,
+        doc.height,  # Вычитаем пространство шапки
+
+        id='normal'
+    )
+    # PageTemplate с нашей функцией header
+    template = PageTemplate(id='with_header', frames=frame, onPage=header_canvas)
+    doc.addPageTemplates([template])
+
+    elements.append(Spacer(1, 80))
+
+    create_text(elements, alignment=2, space_after=10,
+                text=f'<font name="OpenSansItalic" size="12" color="{Color.Main}">Дата составления документа {datetime.now().strftime('%d.%m.%Y')}</font>'
                 )
 
     create_text(elements, alignment=2, space_after=5, leading=32, text=f"""
