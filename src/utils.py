@@ -1,8 +1,8 @@
-from reportlab.platypus import Paragraph, Flowable, Spacer, Table, TableStyle
+from reportlab.platypus import Paragraph, Flowable, Spacer, Table, TableStyle, KeepTogether
 from reportlab.lib.styles import ParagraphStyle
 
-from .color import Color
-from .getters_text import get_narabotat_competencie_array_by_competencie_num
+from color import Color
+from getters_text import get_narabotat_competencie_array_by_competencie_num
 
 MAIN_SIZE = 22
 
@@ -58,8 +58,8 @@ def format_list(items: list[str]) -> str:
     return "<br/><br/>".join(formatted_items)
 
 
-def create_text(elements: list[Flowable], text: str, alignment, space_after: int = 0, space_before: int = 0, leading: int = 12, left_indent: int = 0, right_indent: int = 0, wordWrap=None) -> None:
-    elements.append(Paragraph(text, style=ParagraphStyle(name='', alignment=alignment, spaceAfter=space_after, leading=leading, spaceBefore=space_before, leftIndent=left_indent)))
+def create_text(elements: list[Flowable], text: str, alignment, space_after: int = 0, space_before: int = 0, leading: int = 12, left_indent: int = 0, right_indent: int = 0) -> None:
+    elements.append(Paragraph(text, style=ParagraphStyle(name='', alignment=alignment, spaceAfter=space_after, leading=leading, spaceBefore=space_before, rightIndent=right_indent, leftIndent=left_indent)))
 
 
 def create_orange_rect(elements, w, h, text):
@@ -78,7 +78,9 @@ def create_orange_rect(elements, w, h, text):
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),  # Горизонтальное центрирование текста
     ]))
 
-    elements.append(table)
+    elements.append(KeepTogether([
+        table,
+    ]))
 
 
 def create_2x2_table(elements, w, data):
@@ -94,15 +96,15 @@ def create_2x2_table(elements, w, data):
         ('BOTTOMPADDING', (0, 0), (-1, -1), 40)
     ]))
 
-    elements.append(table)
+    elements.append(KeepTogether([
+        table,
+    ]))
 
 
 def create_matrix_energy(elements, array):
     for i in array:
-        t = f"""
-                <font name="OpenSans" size="{MAIN_SIZE}" color="{Color.Main}"> • {i}</font>
-                """
-        create_text(elements, left_indent=20, space_after=5, space_before=5, alignment=0, leading=32, text=t)
+        t = f"""<font name="OpenSans" size="{MAIN_SIZE}" color="{Color.Main}"> • {i}</font>"""
+        create_text(elements, left_indent=20, space_after=5, space_before=5, alignment=0, leading=32, right_indent=40, text=t)
 
 
 def create_recomendations(elements, array):
@@ -134,7 +136,9 @@ def draw_rectangles(elements, data):
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
     ]))
 
-    elements.append(table)
+    elements.append(KeepTogether([
+        table,
+    ]))
 
 
 def get_create_zadacha_ot_tvortsa_func(nomer_zadachi_ot_tvortsa: int):

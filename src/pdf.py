@@ -1,6 +1,5 @@
 import io
 
-from reportlab.lib.units import cm
 from reportlab.platypus import SimpleDocTemplate, PageTemplate, Frame
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.enums import TA_CENTER, TA_LEFT
@@ -39,38 +38,72 @@ header_style = ParagraphStyle(
 header_text = "институт цифровой психологии и коучинга"
 subheader_text = "По методу Изиды Кадыровой"
 
+subheader_style = ParagraphStyle(
+    name='SubHeaderStyle',
+    fontName='Vasek',
+    fontSize=BIG_SIZE - 6,
+    leading=(BIG_SIZE - 6) + 2,
+    alignment=1,
+    textColor=Color.Highlighted
+)
+
+
 def header_canvas(canvas, doc):
     canvas.saveState()
 
-    # Первый текст (шапка)
-    header_style = ParagraphStyle(
-        name='HeaderStyle',
-        fontName='OpenSans',
-        fontSize=BIG_SIZE,
-        leading=BIG_SIZE + 4,
-        alignment=1,
-        textColor=Color.Highlighted
-    )
-    header_para = Paragraph(header_text, header_style)
-    width, height = header_para.wrap(PAGE_W - 80 * 2, 80)
-    y_position = PAGE_H - 40 - height + 5
-    header_para.drawOn(canvas, (PAGE_W - width) / 2, y_position)
+    usable_width = doc.width  # ширина между полями
 
-    # Второй текст (подшапка) с меньшим шрифтом
-    subheader_style = ParagraphStyle(
-        name='SubHeaderStyle',
-        fontName='Vasek',
-        fontSize=BIG_SIZE - 6,  # чуть меньше
-        leading=(BIG_SIZE - 6) + 2,
-        alignment=1,
-        textColor=Color.Highlighted
-    )
+    vertical_padding = 12   # отступ сверху и снизу внутри синего блока
+    gap_between = 6         # расстояние между заголовком и подзаголовком
+
+    # ===== Параграфы =====
+    header_para = Paragraph(header_text, header_style)
     subheader_para = Paragraph(subheader_text, subheader_style)
-    sub_width, sub_height = subheader_para.wrap(PAGE_W - 80 * 2, 50)
-    # Смещаем вниз на высоту первой шапки плюс небольшой отступ
-    subheader_para.drawOn(canvas, (PAGE_W - sub_width) / 2, y_position - sub_height - 5)
+
+    header_w, header_h = header_para.wrap(usable_width, 200)
+    sub_w, sub_h = subheader_para.wrap(usable_width, 200)
+
+    total_text_height = header_h + gap_between + sub_h
+
+    # ===== Позиция блока =====
+    block_height = total_text_height + vertical_padding * 2
+    # print(block_height, doc.height, doc.bottomMargin)
+    block_y = PAGE_H - block_height - 80
+
+    # 🔵 Рисуем фон строго по границам документа
+    canvas.setFillColor("#ECE7E4")  # твой синий
+    canvas.rect(
+        doc.leftMargin,
+        block_y,
+        usable_width,
+        block_height,
+        stroke=0,
+        fill=1
+    )
+
+    # ===== Рисуем текст =====
+    current_y = block_y + block_height - vertical_padding - header_h
+    header_para.drawOn(canvas, doc.leftMargin + (usable_width - header_w) / 2, current_y)
+    current_y -= (gap_between + sub_h)
+    subheader_para.drawOn(canvas, doc.leftMargin + (usable_width - sub_w) / 2, current_y)
 
     canvas.restoreState()
+
+
+def get_header_height(doc):
+    usable_width = doc.width
+
+    vertical_padding = 12
+    gap_between = 6
+
+    header_para = Paragraph(header_text, header_style)
+    subheader_para = Paragraph(subheader_text, subheader_style)
+
+    _, header_h = header_para.wrap(usable_width, 200)
+    _, sub_h = subheader_para.wrap(usable_width, 200)
+
+    total_text_height = header_h + gap_between + sub_h
+    return total_text_height + vertical_padding * 2
 
 
 def create_pdf(name: str, date_of_birth_str: str) -> tuple[bytes, str]:
@@ -160,12 +193,14 @@ def create_pdf(name: str, date_of_birth_str: str) -> tuple[bytes, str]:
     styles = getSampleStyleSheet()
 
     doc = SimpleDocTemplate(pdf_buffer, pagesize=(PAGE_W, PAGE_H), leftMargin=80, rightMargin=80, topMargin=130, bottomMargin=20)
-
+    header_height = get_header_height(doc)
+    doc.topMargin = header_height + 120  # + небольшой дополнительный отступ
     frame = Frame(
         doc.leftMargin,
         doc.bottomMargin,
         doc.width,
-        doc.height - 50,  # Вычитаем пространство шапки
+        doc.height,  # Вычитаем пространство шапки
+
         id='normal'
     )
     # PageTemplate с нашей функцией header
@@ -190,11 +225,13 @@ def create_pdf(name: str, date_of_birth_str: str) -> tuple[bytes, str]:
         name='Table',
         fontName='OpenSans',
         alignment=1,
-        leading=20
+        leading=20,
+        splitLongWords=0,   # ← ВАЖНО
+        wordWrap='CJK'      # помогает корректнее переносить
     ))
 
-    create_text(elements, alignment=2, space_after=10,
-                text=f'<font name="OpenSans" size="12" color={Color.Main}>Дата составления документа {datetime.now().strftime('%d.%m.%Y')}</font>'
+    create_text(elements, alignment=2, space_after=10, space_before=150,
+                text=f'<font name="OpenSansItalic" size="12" color={Color.Main}>Дата составления документа {datetime.now().strftime('%d.%m.%Y')}</font>'
                 )
 
     create_text(elements, alignment=2, space_after=5, leading=32, text=f"""
@@ -209,12 +246,12 @@ def create_pdf(name: str, date_of_birth_str: str) -> tuple[bytes, str]:
         <font name="OpenSans" size="{BIG_SIZE}" color={Color.Highlighted}>Цифровая психология - стратегия счастливой жизни.</font>
     """)
 
-    create_text(elements, alignment=1, space_after=20, text=f"""
+    create_text(elements, left_indent=35, alignment=0, space_after=30, text=f"""
         <font name="OpenSansBold" size="{HIGHLIGHTED_SIZE}" color="{Color.Highlighted}">{name} </font>
         <font name="OpenSans" size="{MAIN_SIZE}" color="{Color.Main}">(дата рождения {date_of_birth_str} - {week_day_of_birth}) {chislo_soznaniya} / {chislo_deystviya}</font>"
     """)
 
-    create_text(elements, alignment=1, space_after=40, text=f"""
+    create_text(elements, left_indent=35, alignment=0, space_after=40, leading=32, text=f"""
         <font name="OpenSansBold" size="{HIGHLIGHTED_SIZE}" color={Color.Highlighted}>Энергия имени {name.upper()}</font>
         <font name="OpenSans" size="{HIGHLIGHTED_SIZE}" color={Color.Black}> - {name_energy_digit} {name_energy_description}</font>
     """)
@@ -328,8 +365,22 @@ def create_pdf(name: str, date_of_birth_str: str) -> tuple[bytes, str]:
     ]
 
     # Создаем таблицу с 8 колонками
-    table = Table(data, colWidths=[doc.width * 0.125, doc.width * 0.125, doc.width * 0.125, doc.width * 0.125,
-                                   doc.width * 0.11, doc.width * 0.11, doc.width * 0.15, doc.width * 0.165])
+    side_padding = 20  # сколько хочешь отступ
+
+    table_width = doc.width - side_padding * 2
+    table = Table(
+        data,
+        colWidths=[
+            table_width * 0.125,
+            table_width * 0.125,
+            table_width * 0.125,
+            table_width * 0.125,
+            table_width * 0.11,
+            table_width * 0.11,
+            table_width * 0.15,
+            table_width * 0.165
+        ]
+    )
 
     # Настраиваем стиль таблицы
     table.setStyle(TableStyle([
@@ -348,8 +399,9 @@ def create_pdf(name: str, date_of_birth_str: str) -> tuple[bytes, str]:
         ('SPAN', (3, 0), (3, 1))
     ]))
 
-    # Добавляем таблицу в документ
-    elements.append(table)
+    elements.append(KeepTogether([
+        table,
+    ]))
 
     bolezni_text = f"""<font name="OpenSansBold" size="{MAIN_SIZE}" color={Color.Highlighted}>Болезни: </font>"""
     bolezni = f"""{bolezni_text}
@@ -455,7 +507,9 @@ def create_pdf(name: str, date_of_birth_str: str) -> tuple[bytes, str]:
         ('VALIGN', (0, 1), (-1, -1), 'TOP'),  # Вертикальное выравнивание по верхнему краю для остальных строк
     ]))
 
-    elements.append(table)
+    elements.append(KeepTogether([
+        table,
+    ]))
     elements.append(Spacer(1, 20))
 
     create_orange_rect(elements, doc.width, 120, f"""
@@ -493,7 +547,9 @@ def create_pdf(name: str, date_of_birth_str: str) -> tuple[bytes, str]:
         ('TOPPADDING', (1, 0), (1, 1), 15),  # Отступ сверху
         ('BOTTOMPADDING', (1, 0), (1, 1), 15),  # Отступ снизу
     ]))
-    elements.append(table)
+    elements.append(KeepTogether([
+    table,
+]))
     elements.append(Spacer(1, 25))
 
     create_orange_rect(elements, doc.width, 110, f"""
@@ -503,8 +559,8 @@ def create_pdf(name: str, date_of_birth_str: str) -> tuple[bytes, str]:
 
     create_zadacha_ot_tvortsa_func(elements)
 
-    create_text(elements, alignment=1, space_before=20, space_after=20, leading=28, text=f"""<font name="OpenSansBold" size="{28}"
-    color="{Color.Main}">Формула задачи (стратегия счастливой жизни)</font>""")
+    create_text(elements, alignment=1, space_before=20, space_after=20, leading=28, text=f"""<font name="OpenSans" size="{28}"
+    color="{Color.Highlighted}">Формула задачи (стратегия счастливой жизни)</font>""")
 
     draw_formula_zadachi_tvortsa_func(elements)
 
@@ -538,7 +594,9 @@ def create_pdf(name: str, date_of_birth_str: str) -> tuple[bytes, str]:
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),  # Вертикальное центрирование текста
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),  # Горизонтальное центрирование текста
     ]))
-    elements.append(table)
+    elements.append(KeepTogether([
+    table,
+]))
 
     create_text(elements, alignment=0, space_before=20, space_after=20, leading=28, text=f"""<font name="OpenSansBold" size="{MAIN_SIZE}" color={Color.Highlighted}>В Вашей матрице заложены следующие энергии:</font>""")
     create_matrix_energy(elements, est_energy)
@@ -613,7 +671,7 @@ def create_pdf(name: str, date_of_birth_str: str) -> tuple[bytes, str]:
 load_font()
 
 if __name__ == '__main__':
-    pdf = create_pdf('anna', '11.02.2001')
+    pdf = create_pdf('Osman', '03.03.2026')
 
     with open('ex.pdf', 'wb') as f:
         f.write(pdf[0])
