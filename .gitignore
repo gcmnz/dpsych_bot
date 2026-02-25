@@ -2,5 +2,4 @@
 api_token.py
 *.pyc
 .venv
-fonts
 src/font_loader.pya

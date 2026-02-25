@@ -12,6 +12,21 @@ def get_name_energy_description(digit: int) -> str:
     return d[digit]
 
 
+def get_planet_pic_by_soznanie(chislo_soznaniya: int) -> str:
+    d = {
+        1: "солнце",
+        2: "луна",
+        3: "юпитер",
+        4: "раху",
+        5: "меркурий",
+        6: "венера",
+        7: "кету",
+        8: "сатурн",
+        9: "марс"
+    }
+
+    return d[chislo_soznaniya]
+
 def get_planet_by_soznanie(chislo_soznaniya: int) -> str:
     d = \
         {
