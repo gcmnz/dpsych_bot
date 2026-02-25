@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from utils import char_to_digit
+from .utils import char_to_digit
 
 
 def count_date_to_digit(data: str) -> int:

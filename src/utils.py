@@ -1,8 +1,8 @@
 from reportlab.platypus import Paragraph, Flowable, Spacer, Table, TableStyle, KeepTogether
 from reportlab.lib.styles import ParagraphStyle
 
-from color import Color
-from getters_text import get_narabotat_competencie_array_by_competencie_num
+from .color import Color
+from .getters_text import get_narabotat_competencie_array_by_competencie_num
 
 MAIN_SIZE = 22
 MAIN_FONT = 'OpenSans'
@@ -109,7 +109,6 @@ def create_text(
         left_indent: int = 0,
         right_indent: int = 0,
         font_size: int = MAIN_SIZE,
-        bullet: str | None = None
 ) -> None:
     style = ParagraphStyle(
         name='custom',
@@ -123,12 +122,11 @@ def create_text(
         bulletIndent=left_indent,  # ключевой момент
     )
 
-    elements.append(
+    elements.append(KeepTogether(
         Paragraph(
             text,
             style=style,
-            bulletText=bullet
-        )
+        ))
     )
 
 

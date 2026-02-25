@@ -1,14 +1,17 @@
+from pathlib import Path
+
 if __name__ == '__main__':
     from alg import *
     from utils import *
     from getters_text import *
     from font_loader import load_font
-
+    PLANET_PATH = Path('icons')
 else:
     from .alg import *
     from .utils import *
     from .getters_text import *
     from .font_loader import load_font
+    PLANET_PATH = Path('src/icons')
 
 import io
 import os
@@ -46,7 +49,7 @@ class Text:
 class SVGFlowable(Flowable):
     def __init__(self, svg_path, width, height):
         super().__init__()
-        print(svg_path)
+
         self.svg_path = svg_path
         self.width = width
         self.height = height
@@ -55,11 +58,15 @@ class SVGFlowable(Flowable):
         return self.width, self.height
 
     def draw(self):
+        if not self.svg_path:
+            print(f'{self.svg_path} is None')
+            return
+
         if not os.path.exists(self.svg_path):
+            print(f'{self.svg_path} not found')
             return
 
         drawing = svg2rlg(self.svg_path)
-
         if drawing is None:
             return
 
@@ -118,31 +125,38 @@ class ParagraphWithBorderSVG(Flowable):
         p_width, p_height = self.paragraph.wrap(self.width - 2 * self.padding, self.height - 2 * self.padding)
         self.paragraph.drawOn(self.canv, self.padding, self.height - self.padding - p_height)
 
+        if not self.svg_path:
+            print(f'{self.svg_path} is None')
+            return
+
+        if not os.path.exists(self.svg_path):
+            print(f'{self.svg_path} not found')
+            return
+
         # Отрисовка SVG-иконки
-        if self.svg_path and os.path.exists(self.svg_path):
-            try:
-                drawing = svg2rlg(self.svg_path)
-                if drawing is not None:
-                    # Масштабируем SVG до нужных размеров
-                    scale_x = self.svg_width / drawing.width
-                    scale_y = self.svg_height / drawing.height
-                    scale = min(scale_x, scale_y)
+        try:
+            drawing = svg2rlg(self.svg_path)
+            if drawing is not None:
+                # Масштабируем SVG до нужных размеров
+                scale_x = self.svg_width / drawing.width
+                scale_y = self.svg_height / drawing.height
+                scale = min(scale_x, scale_y)
 
-                    # Центрируем SVG в правой части блока
-                    svg_y = (self.height - self.svg_height) / 2
-                    svg_x = self.width - self.svg_width - self.padding
+                # Центрируем SVG в правой части блока
+                svg_y = (self.height - self.svg_height) / 2
+                svg_x = self.width - self.svg_width - self.padding
 
-                    # Сохраняем текущее состояние канвы
-                    self.canv.saveState()
-                    # Перемещаем начало координат в нужное место
-                    self.canv.translate(svg_x, svg_y)
-                    # Масштабируем и отрисовываем SVG
-                    self.canv.scale(scale, scale)
-                    renderPDF.draw(drawing, self.canv, 0, 0)
-                    # Восстанавливаем состояние канвы
-                    self.canv.restoreState()
-            except Exception as e:
-                print(f"Error loading SVG: {e}")
+                # Сохраняем текущее состояние канвы
+                self.canv.saveState()
+                # Перемещаем начало координат в нужное место
+                self.canv.translate(svg_x, svg_y)
+                # Масштабируем и отрисовываем SVG
+                self.canv.scale(scale, scale)
+                renderPDF.draw(drawing, self.canv, 0, 0)
+                # Восстанавливаем состояние канвы
+                self.canv.restoreState()
+        except Exception as e:
+            print(f"Error loading SVG: {e}")
 
         self.canv.restoreState()
 
@@ -605,18 +619,18 @@ def create_pdf(name: str, date_of_birth_str: str):
         styles['name']
     )
 
-    elements.append(
+    elements.append(KeepTogether(
         ParagraphWithBorderSVG(
             paragraph=name_p,
             border_color=HexColor(Color.Highlighted),
-            svg_path=f"icons/{planet_pic_name}",
+            svg_path=f"{PLANET_PATH / planet_pic_name}",
             svg_width=100,
             svg_height=100,
             border_width=2,
             border_radius=6,
             padding=20
         )
-    )
+    ))
 
     chislo_soznaniya_p = Paragraph(
         f"""<font name="{HEADER_FONT}" size="{HEADER_SIZE}" color="{HEADER_COLOR}">
@@ -629,11 +643,11 @@ def create_pdf(name: str, date_of_birth_str: str):
         styles['header']
     )
     elements.append(Spacer(0, 30))
-    elements.append(
+    elements.append(KeepTogether(
         ParagraphWithBorder(
             chislo_soznaniya_p,
             Color.TableBackground,
-        )
+        ))
     )
 
     pl_text = f"""<font name="OpenSansBold" size="{MAIN_SIZE}" color={Color.Highlighted}>Планета</font>"""
@@ -793,12 +807,12 @@ def create_pdf(name: str, date_of_birth_str: str):
         styles['header']
     )
     elements.append(Spacer(0, 20))
-    elements.append(
+    elements.append(KeepTogether(
         ParagraphWithBorder(
             chislo_deystviya_p,
             Color.TableBackground,
             padding=20
-        )
+        ))
     )
 
     opisanie_chislo_deistviya_text = f"""<font name="OpenSansBold" size="{MAIN_SIZE}" color={Color.Highlighted}>Краткое описание по Числу действия: </font>"""
@@ -860,11 +874,11 @@ def create_pdf(name: str, date_of_birth_str: str):
         styles['header']
     )
     elements.append(Spacer(0, 30))
-    elements.append(
+    elements.append(KeepTogether(
         ParagraphWithBorder(
             vector_zhizni_p,
             Color.TableBackground,
-        )
+        ))
     )
     create_text(elements, alignment=0, space_before=15, text=f"""<font name="OpenSans" size="{MAIN_SIZE}">(Вектор жизни - показатель направленности в жизни, т.е. совокупность энергий, через
         которые человек приходит либо к стагнации и разрушению, либо к самореализации в жизни.
@@ -892,11 +906,12 @@ def create_pdf(name: str, date_of_birth_str: str):
     )
     elements.append(Spacer(0, 30))
     elements.append(
+        KeepTogether(
         ParagraphWithBorder(
             zadacha_ot_tvortsa_p,
             Color.TableBackground,
             padding=2
-        )
+        ))
     )
     elements.append(Spacer(0, 10))
     create_zadacha_ot_tvortsa_func(elements)
@@ -923,12 +938,12 @@ def create_pdf(name: str, date_of_birth_str: str):
                                     </font>""",
         styles['header']
     )
-    elements.append(
+    elements.append(KeepTogether(
         ParagraphWithBorder(
             matrix_p,
             Color.TableBackground,
             padding=8
-        )
+        ))
     )
 
     elements.append(Spacer(1, 30))
@@ -1007,12 +1022,12 @@ def create_pdf(name: str, date_of_birth_str: str):
         styles['header']
     )
     elements.append(Spacer(0, 20))
-    elements.append(
+    elements.append(KeepTogether(
         ParagraphWithBorder(
             chislo_deystviya_p,
             Color.TableBackground,
             padding=20
-        )
+        ))
     )
     text = f"""
     <font name="OpenSansBold" size="{MAIN_SIZE}" color="{Color.Highlighted}">{lichniy_god_description}</font><br/>
@@ -1036,13 +1051,15 @@ def create_pdf(name: str, date_of_birth_str: str):
     text = f"""<font name="Cremona" size="{HEADER_SIZE}" color={Color.Highlighted}>{name}, я от всей души желаю Вам успеха!</font>"""
     create_text(elements, alignment=1, space_after=40, space_before=140, leading=46, left_indent=200, right_indent=200, text=text)
 
-    s = SVGFlowable(f"icons/{planet_pic_name}", 120, 120)
+    s = SVGFlowable(f"{PLANET_PATH / planet_pic_name}", 120, 120)
     elements.append(s)
 
     doc.build(elements, onFirstPage=draw_header, onLaterPages=draw_header)
 
     buffer.seek(0)
-    return buffer.read()
+    file_path: str = f'{name}_{date_of_birth_str}.pdf'
+
+    return buffer.read(), file_path
 
 
 load_font()
